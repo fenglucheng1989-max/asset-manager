@@ -1,0 +1,27 @@
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# 后端 Java
+backend/target/
+backend/*.jar
+backend/.gradle/
+
+# 前端 uni-app
+frontend/node_modules/
+frontend/dist/
+frontend/.hbuilderx/
+frontend/unpackage/
+
+# 部署数据
+deploy/data/
+
+# 日志
+*.log

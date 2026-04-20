@@ -1,0 +1,71 @@
+# 资产管家 (Asset Manager) - 完整产品设计与开发方案
+
+> **版本**：v1.0 MVP  
+> **定位**：个人资产负债表管理工具，优先实现资产管理模块，后续扩展记账功能。  
+> **目标平台**：iOS、Android、H5、微信小程序（使用 uni-app 一套代码覆盖）。  
+> **技术栈**：Spring Boot 3.2 + PostgreSQL + Redis + MyBatis-Plus + uni-app (Vue 3)  
+> **项目结构**：前后端同仓（Monorepo），`backend/` 为 Spring Boot 项目，`frontend/` 为 uni-app 项目。
+
+---
+
+## 一、产品概述
+
+### 1.1 产品愿景
+在经济不确定性增强的背景下，帮助用户清晰掌握个人或家庭的全部资产与负债，提供“财务安全垫”的量化感知，缓解财务焦虑。
+
+### 1.2 MVP 核心功能（资产管理模块）
+1. **账户管理**：创建、编辑、删除、排序不同类型的资产/负债账户。
+2. **余额调整**：手动更新每个账户的当前余额。
+3. **资产总览**：实时计算并展示总资产、总负债、净资产。
+4. **资产配置可视化**：以环形图展示各类资产/负债占比。
+
+### 1.3 后续迭代功能（记账模块）
+- 流水记录与账户余额自动联动。
+- 预算管理与超支预警。
+- 多维度统计报表。
+
+---
+
+## 二、技术选型
+
+| 层级 | 技术 | 版本 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **后端框架** | Spring Boot | 3.2.x | 提供 RESTful API |
+| **JDK** | Java | 17 | 推荐使用 17 LTS |
+| **数据库** | PostgreSQL | 15+ | 支持 DECIMAL 精确数值类型 |
+| **ORM** | MyBatis-Plus | 3.5.x | 简化单表 CRUD，保留 SQL 灵活性 |
+| **缓存** | Redis | 7.x | 缓存资产总览，减少数据库压力 |
+| **分布式锁** | Redisson | 3.23.x | 防止并发修改余额（预留，MVP 可暂缓） |
+| **工具库** | Hutool | 5.8.x | 简化日期、字符串等操作 |
+| **对象映射** | MapStruct | 1.5.x | DTO 与 Entity 转换 |
+| **前端跨端** | uni-app (Vue 3) | 最新版 | 一套代码编译多端 |
+| **UI 组件库** | uni-ui | 最新版 | uni-app 官方组件库 |
+| **图表库** | uCharts | 2.5.x | 轻量级跨端图表解决方案 |
+| **部署** | Docker + Docker Compose | 最新版 | 容器化部署 |
+
+---
+
+## 三、数据库设计
+
+### 3.1 资产账户表 `asset_account`
+
+```sql
+CREATE TABLE asset_account (
+    id               BIGSERIAL PRIMARY KEY,
+    user_id          BIGINT NOT NULL,
+    name             VARCHAR(50) NOT NULL,
+    account_type     VARCHAR(20) NOT NULL,
+    currency         VARCHAR(3) DEFAULT 'CNY',
+    current_balance  DECIMAL(19,4) NOT NULL DEFAULT 0,
+    is_liability     BOOLEAN DEFAULT FALSE,
+    include_in_total BOOLEAN DEFAULT TRUE,
+    icon             VARCHAR(50),
+    color_hex        VARCHAR(7),
+    sort_order       INT DEFAULT 0,
+    remark           VARCHAR(200),
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_asset_account_user_id ON asset_account(user_id);
+CREATE INDEX idx_asset_account_type ON asset_account(account_type);
