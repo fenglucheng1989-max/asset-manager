@@ -6,6 +6,18 @@
           <text class="avatar-text">{{ username.substring(0, 1).toUpperCase() }}</text>
         </view>
         <text class="username">{{ username }}</text>
+        <text class="profile-subtitle">当前账号已登录，资产数据可同步使用</text>
+      </view>
+
+      <view class="summary-card">
+        <view class="summary-row">
+          <text class="summary-label">当前账号</text>
+          <text class="summary-value">{{ username }}</text>
+        </view>
+        <view class="summary-row">
+          <text class="summary-label">登录状态</text>
+          <text class="summary-value active">已登录</text>
+        </view>
       </view>
 
       <view class="menu-list">
@@ -107,19 +119,20 @@ export default {
 
 <style scoped>
 .container {
-  padding: 20rpx;
+  padding: 20rpx 20rpx calc(140rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .profile-section {
-  padding-top: 60rpx;
+  padding-top: 56rpx;
 }
 
 .avatar-area {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 60rpx;
+  margin-bottom: 42rpx;
 }
 
 .avatar {
@@ -143,12 +156,54 @@ export default {
   font-size: 36rpx;
   font-weight: 600;
   color: #333333;
+  margin-bottom: 10rpx;
+}
+
+.profile-subtitle {
+  font-size: 26rpx;
+  color: #888888;
+  text-align: center;
+  line-height: 38rpx;
 }
 
 .menu-list,
-.login-card {
+.login-card,
+.summary-card {
   background: #ffffff;
   border-radius: 16rpx;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05);
+}
+
+.summary-card {
+  padding: 8rpx 30rpx;
+  margin-bottom: 24rpx;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 76rpx;
+  border-bottom: 1rpx solid #f3f3f3;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+}
+
+.summary-label {
+  color: #777777;
+  font-size: 28rpx;
+}
+
+.summary-value {
+  color: #333333;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.summary-value.active {
+  color: #2EBD85;
 }
 
 .menu-list {

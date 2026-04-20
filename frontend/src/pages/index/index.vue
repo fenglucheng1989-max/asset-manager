@@ -21,7 +21,10 @@
         <view class="allocation-item" v-for="item in allocationItems" :key="item.name">
           <view class="allocation-row">
             <text class="allocation-name">{{ item.name }}</text>
-            <text class="allocation-value">{{ item.percent }}%</text>
+            <view class="allocation-meta">
+              <text class="allocation-amount">{{ formatMoney(item.value) }}</text>
+              <text class="allocation-value">{{ item.percent }}%</text>
+            </view>
           </view>
           <view class="allocation-track">
             <view class="allocation-bar" :style="{ width: item.percent + '%', backgroundColor: item.color }" />
@@ -133,16 +136,18 @@ export default {
 
 <style scoped>
 .container {
-  padding: 20rpx;
+  padding: 20rpx 20rpx calc(140rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .net-worth-card {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: linear-gradient(135deg, #111827 0%, #172033 100%);
   border-radius: 16rpx;
   padding: 40rpx;
-  margin-bottom: 30rpx;
+  margin-bottom: 28rpx;
   color: #ffffff;
+  box-shadow: 0 10rpx 28rpx rgba(17, 24, 39, 0.14);
 }
 
 .card-title {
@@ -152,20 +157,23 @@ export default {
 }
 
 .net-worth-amount {
-  font-size: 56rpx;
+  font-size: 58rpx;
   font-weight: bold;
   color: #FFD700;
   margin-bottom: 30rpx;
+  word-break: break-all;
 }
 
 .card-detail {
   display: flex;
   justify-content: space-between;
+  gap: 24rpx;
 }
 
 .detail-item {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .detail-label {
@@ -177,6 +185,7 @@ export default {
 .detail-value {
   font-size: 32rpx;
   font-weight: 500;
+  word-break: break-all;
 }
 
 .detail-value.liability {
@@ -188,7 +197,8 @@ export default {
   background: #ffffff;
   border-radius: 16rpx;
   padding: 30rpx;
-  margin-bottom: 30rpx;
+  margin-bottom: 28rpx;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05);
 }
 
 .section-title {
@@ -212,25 +222,48 @@ export default {
 .allocation-row {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 20rpx;
   margin-bottom: 12rpx;
 }
 
-.allocation-name,
-.allocation-value {
+.allocation-name {
   font-size: 26rpx;
   color: #555555;
+  flex: 1;
+  min-width: 0;
+}
+
+.allocation-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.allocation-amount {
+  font-size: 26rpx;
+  color: #333333;
+  font-weight: 600;
+  margin-bottom: 4rpx;
+}
+
+.allocation-value {
+  font-size: 24rpx;
+  color: #888888;
 }
 
 .allocation-track {
-  height: 16rpx;
+  height: 18rpx;
   background: #f0f0f0;
-  border-radius: 8rpx;
+  border-radius: 9rpx;
   overflow: hidden;
 }
 
 .allocation-bar {
-  height: 16rpx;
-  border-radius: 8rpx;
+  min-width: 8rpx;
+  height: 18rpx;
+  border-radius: 9rpx;
 }
 
 .section-header {
@@ -261,7 +294,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24rpx 0;
+  padding: 28rpx 0;
   border-bottom: 1rpx solid #f0f0f0;
 }
 
@@ -303,6 +336,10 @@ export default {
   color: #333333;
   font-weight: 500;
   margin-bottom: 8rpx;
+  max-width: 340rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .account-type {
@@ -317,7 +354,7 @@ export default {
 }
 
 .account-balance {
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 600;
   color: #333333;
 }

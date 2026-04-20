@@ -1,19 +1,30 @@
 <template>
   <view class="container">
+    <view v-if="showTypePanel" class="type-mask" @click="showTypePanel = false"></view>
     <view class="form-card">
       <view class="form-item">
         <text class="form-label">账户名称</text>
         <input class="form-input" v-model="form.name" placeholder="请输入账户名称" />
       </view>
 
-      <view class="form-item">
+      <view class="form-item type-item">
         <text class="form-label">账户类型</text>
-        <picker :value="typeIndex" :range="typeOptions" range-key="label" @change="onTypeChange">
-          <view class="form-picker">
-            <text>{{ typeOptions[typeIndex].label }}</text>
-            <text class="picker-arrow">></text>
+        <view class="form-picker" @click.stop="toggleTypePanel">
+          <text>{{ typeOptions[typeIndex].label }}</text>
+          <text class="picker-arrow">></text>
+        </view>
+        <view v-if="showTypePanel" class="type-panel">
+          <view
+            v-for="(item, index) in typeOptions"
+            :key="item.value"
+            class="type-option"
+            :class="{ active: index === typeIndex }"
+            @click.stop="selectType(index)"
+          >
+            <text>{{ item.label }}</text>
+            <text v-if="index === typeIndex" class="type-check">✓</text>
           </view>
-        </picker>
+        </view>
       </view>
 
       <view class="form-item">
@@ -47,7 +58,7 @@
 
       <view class="form-item">
         <text class="form-label">备注</text>
-        <input class="form-input" v-model="form.remark" placeholder="可选备注" />
+        <input class="form-input remark-input" v-model="form.remark" placeholder="选填" />
       </view>
     </view>
 
@@ -76,6 +87,7 @@ export default {
         colorHex: '#2EBD85',
         remark: ''
       },
+      showTypePanel: false,
       typeIndex: 0,
       typeOptions: [
         { label: '银行卡', value: 'BANK' },
@@ -117,9 +129,13 @@ export default {
       this.typeIndex = this.typeOptions.findIndex(item => item.value === account.accountType)
       if (this.typeIndex < 0) this.typeIndex = 0
     },
-    onTypeChange(e) {
-      this.typeIndex = Number(e.detail.value)
+    toggleTypePanel() {
+      this.showTypePanel = !this.showTypePanel
+    },
+    selectType(index) {
+      this.typeIndex = index
       this.form.accountType = this.typeOptions[this.typeIndex].value
+      this.showTypePanel = false
     },
     async handleSave() {
       if (!this.form.name.trim()) {
@@ -169,8 +185,9 @@ export default {
 
 <style scoped>
 .container {
-  padding: 20rpx;
+  padding: 20rpx 20rpx calc(140rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .form-card {
@@ -178,6 +195,9 @@ export default {
   border-radius: 16rpx;
   padding: 30rpx;
   margin-bottom: 30rpx;
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05);
+  position: relative;
+  z-index: 10;
 }
 
 .form-item {
@@ -192,24 +212,41 @@ export default {
   border-bottom: none;
 }
 
+.type-item {
+  position: relative;
+  z-index: 12;
+}
+
 .form-label {
   font-size: 30rpx;
   color: #333333;
-  min-width: 180rpx;
+  width: 180rpx;
+  flex-shrink: 0;
 }
 
 .form-input {
+  width: 0;
   flex: 1;
   text-align: right;
   font-size: 30rpx;
   color: #666666;
+  min-width: 0;
+}
+
+.remark-input {
+  color: #333333;
 }
 
 .form-picker {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   font-size: 30rpx;
   color: #666666;
+  min-width: 0;
+  min-height: 52rpx;
+  cursor: pointer;
+  user-select: none;
 }
 
 .picker-arrow {
@@ -217,9 +254,63 @@ export default {
   color: #cccccc;
 }
 
+.type-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 8;
+  background: transparent;
+}
+
+.type-panel {
+  position: absolute;
+  right: 0;
+  top: 72rpx;
+  width: 360rpx;
+  max-height: 520rpx;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1rpx solid #eeeeee;
+  border-radius: 12rpx;
+  box-shadow: 0 16rpx 44rpx rgba(15, 23, 42, 0.18);
+  z-index: 15;
+}
+
+.type-option {
+  min-height: 84rpx;
+  padding: 0 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #333333;
+  font-size: 28rpx;
+  border-bottom: 1rpx solid #f2f2f2;
+  background: #ffffff;
+}
+
+.type-option:last-child {
+  border-bottom: none;
+}
+
+.type-option.active {
+  color: #2EBD85;
+  font-weight: 600;
+  background: #f5fbf8;
+}
+
+.type-check {
+  color: #2EBD85;
+  font-size: 28rpx;
+}
+
 .color-picker {
   display: flex;
   gap: 16rpx;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex: 1;
 }
 
 .color-option {

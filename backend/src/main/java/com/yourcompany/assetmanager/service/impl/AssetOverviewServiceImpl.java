@@ -7,6 +7,7 @@ import com.yourcompany.assetmanager.service.AssetOverviewService;
 import com.yourcompany.assetmanager.utils.MoneyUtils;
 import com.yourcompany.assetmanager.vo.AssetOverviewVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AssetOverviewServiceImpl implements AssetOverviewService {
 
     private final AssetAccountMapper assetAccountMapper;
@@ -29,7 +31,7 @@ public class AssetOverviewServiceImpl implements AssetOverviewService {
     public AssetOverviewVO getOverview(Long userId) {
         String cacheKey = CACHE_KEY_PREFIX + userId;
 
-        Object cached = redisTemplate.opsForValue().get(cacheKey);
+        Object cached = getCachedOverview(cacheKey);
         if (cached instanceof AssetOverviewVO) {
             return (AssetOverviewVO) cached;
         }
@@ -67,7 +69,7 @@ public class AssetOverviewServiceImpl implements AssetOverviewService {
                 .lastUpdateTime(lastUpdate)
                 .build();
 
-        redisTemplate.opsForValue().set(cacheKey, overview, CACHE_EXPIRE_MINUTES, TimeUnit.MINUTES);
+        cacheOverview(cacheKey, overview);
 
         return overview;
     }
@@ -75,6 +77,27 @@ public class AssetOverviewServiceImpl implements AssetOverviewService {
     @Override
     public void evictOverviewCache(Long userId) {
         String cacheKey = CACHE_KEY_PREFIX + userId;
-        redisTemplate.delete(cacheKey);
+        try {
+            redisTemplate.delete(cacheKey);
+        } catch (Exception e) {
+            log.debug("Skip overview cache eviction because Redis is unavailable", e);
+        }
+    }
+
+    private Object getCachedOverview(String cacheKey) {
+        try {
+            return redisTemplate.opsForValue().get(cacheKey);
+        } catch (Exception e) {
+            log.debug("Skip overview cache lookup because Redis is unavailable", e);
+            return null;
+        }
+    }
+
+    private void cacheOverview(String cacheKey, AssetOverviewVO overview) {
+        try {
+            redisTemplate.opsForValue().set(cacheKey, overview, CACHE_EXPIRE_MINUTES, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            log.debug("Skip overview cache write because Redis is unavailable", e);
+        }
     }
 }

@@ -17,4 +17,10 @@ page {
   background-color: #f5f5f5;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
+
+/* #ifdef H5 */
+.uni-page-head {
+  display: none;
+}
+/* #endif */
 </style>
