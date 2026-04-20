@@ -36,4 +36,4 @@ npm install
 npm run dev:h5
 ```
 
-完整设计与检查结论见 `docs/ASSET_MANAGER_DESIGN.md`。
+完整产品与技术设计见 `docs/ASSET_MANAGER_DESIGN.md`。
