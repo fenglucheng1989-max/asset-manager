@@ -25,3 +25,7 @@ deploy/data/
 
 # 日志
 *.log
+
+# 本地运行和临时打包产物
+.codex-run/
+*.apk

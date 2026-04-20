@@ -68,32 +68,52 @@ export default {
         username: '',
         password: '',
         email: ''
-      }
+      },
+      isLoggedIn: false,
+      username: 'preview'
     }
   },
-  computed: {
-    isLoggedIn() {
-      const userStore = useUserStore()
-      return userStore.isLoggedIn
-    },
-    username() {
-      const userStore = useUserStore()
-      return userStore.username
-    }
+  onShow() {
+    this.refreshUser()
   },
   methods: {
+    refreshUser() {
+      const token = uni.getStorageSync('token') || ''
+      const username = uni.getStorageSync('username') || 'preview'
+
+      this.isLoggedIn = !!token
+      this.username = username
+
+      try {
+        const userStore = useUserStore()
+        if (userStore) {
+          this.isLoggedIn = userStore.isLoggedIn
+          this.username = userStore.username || username
+        }
+      } catch (error) {
+        console.error('Read user store failed:', error)
+      }
+    },
     async handleSubmit() {
       if (!this.loginForm.username.trim() || !this.loginForm.password) {
         uni.showToast({ title: '请输入用户名和密码', icon: 'none' })
         return
       }
 
-      const userStore = useUserStore()
-      const res = this.isRegister
-        ? await userStore.register(this.loginForm.username, this.loginForm.password, this.loginForm.email)
-        : await userStore.login(this.loginForm.username, this.loginForm.password)
+      let res
+      try {
+        const userStore = useUserStore()
+        res = this.isRegister
+          ? await userStore.register(this.loginForm.username, this.loginForm.password, this.loginForm.email)
+          : await userStore.login(this.loginForm.username, this.loginForm.password)
+      } catch (error) {
+        const message = error && error.message ? error.message : '登录失败'
+        uni.showToast({ title: message, icon: 'none' })
+        return
+      }
 
       if (res && res.code === 200) {
+        this.refreshUser()
         uni.showToast({ title: this.isRegister ? '注册成功' : '登录成功', icon: 'success' })
         setTimeout(() => {
           uni.switchTab({ url: '/pages/index/index' })
@@ -107,8 +127,14 @@ export default {
         success: (result) => {
           if (!result.confirm) return
 
-          const userStore = useUserStore()
-          userStore.logout()
+          try {
+            const userStore = useUserStore()
+            userStore.logout()
+          } catch (error) {
+            uni.removeStorageSync('token')
+            uni.removeStorageSync('username')
+          }
+          this.refreshUser()
           uni.showToast({ title: '已退出', icon: 'success' })
         }
       })

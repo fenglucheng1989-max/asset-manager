@@ -1,4 +1,8 @@
-const BASE_URL = ''
+let BASE_URL = ''
+
+// #ifdef APP-PLUS
+BASE_URL = 'http://192.168.101.12:8080'
+// #endif
 
 export function request(options) {
   return new Promise((resolve, reject) => {

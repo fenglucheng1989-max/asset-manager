@@ -15,6 +15,18 @@
       </view>
     </view>
 
+    <view class="login-tip" v-if="!hasToken">
+      <text class="login-tip-title">先登录后开始记录资产</text>
+      <text class="login-tip-text">登录后可新增账户、查看净资产和资产配置。</text>
+      <button class="login-tip-btn" @click="goToMine">去登录</button>
+    </view>
+
+    <view class="error-tip" v-if="pageError">
+      <text class="error-title">页面已进入保护模式</text>
+      <text class="error-text">{{ pageError }}</text>
+      <button class="error-btn" @click="refreshData">重新加载</button>
+    </view>
+
     <view class="allocation-section" v-if="allocationItems.length > 0">
       <view class="section-title">资产配置</view>
       <view class="allocation-list">
@@ -78,19 +90,24 @@ import { useAssetStore } from '../../store/asset'
 import { formatMoney, getAccountTypeName } from '../../utils/money'
 
 const COLORS = ['#2EBD85', '#5B8FF9', '#FF6B6B', '#FFC107', '#00BCD4', '#607D8B']
+const DEFAULT_OVERVIEW = {
+  totalAsset: 0,
+  totalLiability: 0,
+  netWorth: 0,
+  accountCount: 0,
+  lastUpdateTime: null
+}
 
 export default {
-  setup() {
-    const assetStore = useAssetStore()
-    return { assetStore }
+  data() {
+    return {
+      hasToken: false,
+      overview: { ...DEFAULT_OVERVIEW },
+      accounts: [],
+      pageError: ''
+    }
   },
   computed: {
-    overview() {
-      return this.assetStore.overview
-    },
-    accounts() {
-      return this.assetStore.accounts
-    },
     allocationItems() {
       const groups = {}
       this.accounts
@@ -112,15 +129,36 @@ export default {
     }
   },
   onShow() {
-    const token = uni.getStorageSync('token')
-    if (token) {
-      this.assetStore.fetchOverview()
-      this.assetStore.fetchAccounts()
-    }
+    this.refreshData()
   },
   methods: {
     formatMoney,
     getAccountTypeName,
+    async refreshData() {
+      this.hasToken = !!uni.getStorageSync('token')
+      this.pageError = uni.getStorageSync('__last_app_error__') || ''
+
+      if (!this.hasToken) {
+        this.overview = { ...DEFAULT_OVERVIEW }
+        this.accounts = []
+        return
+      }
+
+      try {
+        const assetStore = useAssetStore()
+        await assetStore.fetchOverview()
+        await assetStore.fetchAccounts()
+        this.overview = { ...DEFAULT_OVERVIEW, ...(assetStore.overview || {}) }
+        this.accounts = Array.isArray(assetStore.accounts) ? assetStore.accounts : []
+        this.pageError = ''
+        uni.removeStorageSync('__last_app_error__')
+      } catch (error) {
+        const message = error && error.message ? error.message : String(error)
+        this.pageError = `数据加载失败：${message}`
+        this.overview = { ...DEFAULT_OVERVIEW }
+        this.accounts = []
+      }
+    },
     getIconText(name) {
       return name ? name.substring(0, 1) : '?'
     },
@@ -129,6 +167,9 @@ export default {
     },
     goToEditAccount(id) {
       uni.navigateTo({ url: `/pages/account/form?id=${id}` })
+    },
+    goToMine() {
+      uni.switchTab({ url: '/pages/mine/mine' })
     }
   }
 }
@@ -193,12 +234,73 @@ export default {
 }
 
 .allocation-section,
-.account-section {
+.account-section,
+.login-tip,
+.error-tip {
   background: #ffffff;
   border-radius: 16rpx;
   padding: 30rpx;
   margin-bottom: 28rpx;
   box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05);
+}
+
+.login-tip {
+  display: flex;
+  flex-direction: column;
+}
+
+.error-tip {
+  display: flex;
+  flex-direction: column;
+  border: 1rpx solid #ffd6d6;
+}
+
+.login-tip-title {
+  font-size: 32rpx;
+  color: #333333;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+}
+
+.login-tip-text {
+  font-size: 26rpx;
+  color: #888888;
+  line-height: 38rpx;
+  margin-bottom: 24rpx;
+}
+
+.login-tip-btn {
+  background: #2EBD85;
+  color: #ffffff;
+  border-radius: 12rpx;
+  height: 76rpx;
+  line-height: 76rpx;
+  font-size: 30rpx;
+}
+
+.error-title {
+  font-size: 30rpx;
+  color: #FF6B6B;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+}
+
+.error-text {
+  font-size: 24rpx;
+  color: #777777;
+  line-height: 36rpx;
+  margin-bottom: 20rpx;
+  word-break: break-all;
+}
+
+.error-btn {
+  background: #ffffff;
+  color: #2EBD85;
+  border: 1rpx solid #2EBD85;
+  border-radius: 12rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  font-size: 28rpx;
 }
 
 .section-title {
