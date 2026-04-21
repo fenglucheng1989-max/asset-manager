@@ -8,6 +8,7 @@ CREATE TABLE app_user (
     password_hash    VARCHAR(255) NOT NULL,
     email            VARCHAR(100),
     avatar_url       VARCHAR(255),
+    role             VARCHAR(20) DEFAULT 'USER',
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

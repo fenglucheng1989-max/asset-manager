@@ -10,7 +10,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +27,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             throw new UsernameNotFoundException("User not found: " + username);
         }
 
-        return new User(appUser.getUsername(), appUser.getPasswordHash(), Collections.emptyList());
+        String role = appUser.getRole() == null || appUser.getRole().isBlank() ? "USER" : appUser.getRole();
+        return User.withUsername(appUser.getUsername())
+                .password(appUser.getPasswordHash())
+                .authorities(List.of(() -> "ROLE_" + role.toUpperCase()))
+                .build();
     }
 }

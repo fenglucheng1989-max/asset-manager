@@ -32,6 +32,7 @@ public class AuthServiceImpl implements AuthService {
                 .username(dto.getUsername())
                 .passwordHash(passwordEncoder.encode(dto.getPassword()))
                 .email(dto.getEmail())
+                .role("USER")
                 .build();
 
         appUserMapper.insert(user);

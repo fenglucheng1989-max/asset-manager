@@ -1,0 +1,3 @@
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'USER';
+
+UPDATE app_user SET role = 'USER' WHERE role IS NULL OR role = '';

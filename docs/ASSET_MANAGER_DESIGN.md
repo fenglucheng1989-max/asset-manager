@@ -1,9 +1,9 @@
 # 资产管家 Asset Manager 设计说明
 
-> 版本：1.2  
+> 版本：1.3  
 > 定位：面向个人使用的资产与负债账户管理工具。  
-> 当前阶段：完成登录注册、账户维护、资产总览、H5 预览与 Android 测试包能力。  
-> 技术栈：Spring Boot 3.2、PostgreSQL、Redis、MyBatis-Plus、Flyway、uni-app Vue 3、Pinia。
+> 当前阶段：完成登录注册、账户维护、资产总览、H5/App 预览与后台管理能力。  
+> 技术栈：Spring Boot 3.2、PostgreSQL、Redis、MyBatis-Plus、Flyway、uni-app Vue 3、Pinia、Vue 3、Element Plus。
 
 ## 1. 产品定位
 
@@ -14,6 +14,7 @@
 - 让用户能快速新增银行卡、现金、电子钱包、投资、贷款等账户。
 - 自动计算资产、负债和净资产。
 - 在手机 App、手机 H5 和桌面 H5 上保持一致的主流程体验。
+- 提供独立后台管理端，用于查看全局数据、用户和账户。
 - 为后续趋势、流水、预算、报表和多端同步保留清晰扩展空间。
 
 ## 2. 当前功能
@@ -87,6 +88,20 @@ Android App 已明确按 uni-app Vue 3 打包：
 - App 端请求后端使用局域网地址。
 - App 首屏增加保护逻辑，接口或状态读取失败时不直接白屏。
 
+### 2.5 后台管理
+
+后台管理端为独立 Vue 3 应用，目录为 `admin-frontend/`。当前提供：
+
+- 管理员登录。
+- 数据总览：用户数、账户数、资产账户数、负债账户数、平台总资产、平台总负债、平台净资产。
+- 用户管理：查看用户列表、搜索用户名或邮箱、查看每个用户的资产摘要、调整用户角色。
+- 账户管理：按用户 ID、账户名称、账户类型筛选账户，编辑账户信息，删除账户。
+
+本地预览模式会自动创建管理员账号：
+
+- 用户名：`admin`
+- 密码：`admin123456`
+
 ## 3. 前端设计
 
 ### 3.1 页面结构
@@ -128,6 +143,32 @@ frontend/src/
 - 资产配置使用内置进度条，不依赖额外图表组件。
 - 账户类型选择使用自定义下拉面板，兼容 PC H5、Android 和 iOS WebView。
 - H5 桌面态以手机容器居中呈现，避免页面控件在宽屏被拉得过宽。
+
+### 3.5 后台管理端
+
+```text
+admin-frontend/src/
+  App.vue
+  main.js
+  api/
+    admin.js       后台 API 封装
+    request.js     axios 实例、token 注入和错误提示
+  layout/
+    AdminLayout.vue
+  router/
+    index.js
+  store/
+    auth.js        管理员登录状态
+  views/
+    Login.vue
+    Dashboard.vue
+    Users.vue
+    Accounts.vue
+  utils/
+    format.js
+```
+
+后台管理端使用 Element Plus 构建桌面管理界面，默认开发端口为 `5177`，发布预览端口为 `4177`。后台接口路径同样使用 `/api/v1`，本地开发由 Vite 代理到 `http://localhost:8080`。
 
 ## 4. 后端设计
 
@@ -175,6 +216,15 @@ backend/src/main/java/com/yourcompany/assetmanager/
 - `DELETE /api/v1/asset/accounts/{id}`
 - `PUT /api/v1/asset/accounts/sort`
 
+后台接口：
+
+- `GET /api/v1/admin/dashboard`
+- `GET /api/v1/admin/users`
+- `PUT /api/v1/admin/users/{id}/role`
+- `GET /api/v1/admin/accounts`
+- `PUT /api/v1/admin/accounts/{id}`
+- `DELETE /api/v1/admin/accounts/{id}`
+
 ### 4.3 安全设计
 
 - 使用 Spring Security 保护资产接口。
@@ -182,6 +232,9 @@ backend/src/main/java/com/yourcompany/assetmanager/
 - 密码使用 `PasswordEncoder` 加密存储。
 - 登录和注册成功后返回 JWT。
 - JWT 中写入用户名与用户 ID。
+- 用户表包含 `role` 字段，当前支持 `USER` 和 `ADMIN`。
+- 后台接口要求当前用户角色为 `ADMIN`。
+- local profile 启动时会自动创建或修正本地管理员账号。
 - 当前资产接口通过认证用户名查询用户 ID，后续可以升级为直接从 JWT Claims 读取用户 ID。
 
 ### 4.4 缓存设计
@@ -210,6 +263,7 @@ CREATE TABLE app_user (
     password_hash VARCHAR(255) NOT NULL,
     email VARCHAR(100),
     avatar_url VARCHAR(255),
+    role VARCHAR(20) DEFAULT 'USER',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -297,6 +351,28 @@ frontend/dist/build/h5
 - `manifest.json` 必须保留 `vueVersion: "3"`
 - Android 允许明文 HTTP，用于测试阶段访问局域网后端
 
+### 6.4 后台管理端
+
+```bash
+cd admin-frontend
+npm install
+npm run dev
+npm run build
+npm run preview
+```
+
+开发地址：
+
+```text
+http://localhost:5177/
+```
+
+本地管理员：
+
+```text
+admin / admin123456
+```
+
 ## 7. 部署设计
 
 容器部署目录：
@@ -313,12 +389,14 @@ deploy/
 - Redis：资产总览缓存。
 - Backend：Spring Boot API 服务。
 - Nginx：托管 H5 静态资源并代理 API。
+- Admin H5：后台管理端可独立构建为静态资源，并由 Nginx 挂载到单独路径或独立域名。
 
 生产环境要求：
 
 - 使用强随机 `JWT_SECRET`。
 - 数据库、Redis 密码通过环境变量提供。
 - H5 构建产物由 Nginx 托管。
+- 后台管理构建产物可由 Nginx 托管，建议使用独立访问路径并仅开放给可信网络。
 - API 统一通过 Nginx 反向代理，避免前端硬编码生产后端地址。
 
 ## 8. 后续迭代升级规划
@@ -330,6 +408,7 @@ deploy/
 - 账户表单增加更完整的金额校验、名称长度提示和离开确认。
 - 登录注册增加更友好的错误提示。
 - H5、Android App 使用统一的环境变量或配置文件管理 API 地址。
+- 后台管理增加分页、批量操作和操作日志。
 
 ### 8.2 资产能力升级
 
@@ -352,6 +431,7 @@ deploy/
 - iOS 打包适配。
 - PWA 支持，增强 H5 桌面安装体验。
 - 主题色、暗色模式和安全区适配。
+- 后台管理支持更细粒度权限，例如只读运营、财务管理员、超级管理员。
 - 图表组件引入后，统一验证 H5、Android、iOS 的渲染效果。
 
 ### 8.5 工程质量升级
@@ -369,3 +449,4 @@ deploy/
 - 当前版本不自动采集银行、支付平台或证券账户数据。
 - 当前版本的 Android 包用于测试，不作为应用市场上架包。
 - 当前版本的 H5 发布预览代理只用于本地联调，正式部署应由 Nginx 或网关提供 API 代理。
+- 当前后台管理端用于内部管理，不面向普通用户开放。

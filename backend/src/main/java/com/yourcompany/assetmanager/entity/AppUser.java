@@ -30,6 +30,8 @@ public class AppUser {
 
     private String avatarUrl;
 
+    private String role;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 

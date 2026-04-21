@@ -20,6 +20,10 @@ frontend/dist/
 frontend/.hbuilderx/
 frontend/unpackage/
 
+# 后台管理前端
+admin-frontend/node_modules/
+admin-frontend/dist/
+
 # 部署数据
 deploy/data/
 
