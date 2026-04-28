@@ -24,17 +24,14 @@
 
       <view class="menu-group">
         <view class="menu-item" @click="goTrend">
-          <text class="menu-icon">趋</text>
           <text class="menu-title">资产趋势</text>
           <text class="menu-arrow">›</text>
         </view>
         <view class="menu-item" @click="goHome">
-          <text class="menu-icon">账</text>
           <text class="menu-title">账户管理</text>
           <text class="menu-arrow">›</text>
         </view>
         <view class="menu-item" @click="goTrend">
-          <text class="menu-icon">照</text>
           <view class="menu-copy">
             <text class="menu-title">快照管理</text>
             <text class="menu-subtitle">查看历史快照或记录今日资产</text>
@@ -45,12 +42,10 @@
 
       <view class="menu-group">
         <view class="menu-item disabled" @click="showComingSoon('主题设置')">
-          <text class="menu-icon">色</text>
           <text class="menu-title">主题设置</text>
           <text class="menu-badge">预留</text>
         </view>
         <view class="menu-item">
-          <text class="menu-icon">币</text>
           <text class="menu-title">默认货币</text>
           <picker :range="currencyOptions" range-key="label" :value="currencyIndex" @change="handleCurrencyChange">
             <view class="inline-picker">
@@ -63,17 +58,14 @@
 
       <view class="menu-group">
         <view class="menu-item" @click="showComingSoon('导出数据')">
-          <text class="menu-icon">导</text>
           <text class="menu-title">导出数据</text>
           <text class="menu-arrow">›</text>
         </view>
         <view class="menu-item disabled" @click="showComingSoon('备份与同步')">
-          <text class="menu-icon">备</text>
           <text class="menu-title">备份与同步</text>
           <text class="menu-badge">预留</text>
         </view>
         <view class="menu-item danger" @click="confirmClearData">
-          <text class="menu-icon">清</text>
           <text class="menu-title">清空所有数据</text>
           <text class="menu-arrow">›</text>
         </view>
@@ -81,17 +73,14 @@
 
       <view class="menu-group">
         <view class="menu-item" @click="showComingSoon('修改密码')">
-          <text class="menu-icon">密</text>
           <text class="menu-title">修改密码</text>
           <text class="menu-arrow">›</text>
         </view>
         <view class="menu-item disabled" @click="showComingSoon('生物识别解锁')">
-          <text class="menu-icon">锁</text>
           <text class="menu-title">生物识别解锁</text>
           <switch disabled :checked="false" color="#2EBD85" />
         </view>
         <view class="menu-item danger" @click="showComingSoon('注销账号')">
-          <text class="menu-icon">销</text>
           <text class="menu-title">注销账号</text>
           <text class="menu-arrow">›</text>
         </view>
@@ -427,10 +416,10 @@ export default {
 
 .menu-item {
   min-height: 88rpx;
-  padding: 0 24rpx;
+  padding: 0 28rpx;
   display: flex;
   align-items: center;
-  gap: 18rpx;
+  gap: 14rpx;
   border-bottom: 1rpx solid #edf1f4;
 }
 
@@ -440,25 +429,6 @@ export default {
 
 .menu-item.disabled {
   opacity: 0.72;
-}
-
-.menu-icon {
-  width: 46rpx;
-  height: 46rpx;
-  border-radius: 14rpx;
-  background: #eef5f2;
-  color: #226f63;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22rpx;
-  font-weight: 850;
-  flex-shrink: 0;
-}
-
-.menu-item.danger .menu-icon {
-  background: #fff1f3;
-  color: #d94a62;
 }
 
 .menu-title {
