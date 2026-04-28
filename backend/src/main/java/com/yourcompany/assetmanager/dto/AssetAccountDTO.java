@@ -36,7 +36,7 @@ public class AssetAccountDTO {
 
     private String colorHex;
 
-    private Integer sortOrder = 0;
+    private Integer sortOrder;
 
     @Size(max = 200, message = "备注不能超过200个字符")
     private String remark;

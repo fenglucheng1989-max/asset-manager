@@ -58,6 +58,7 @@ public class UserController extends BaseUserController {
                 .baseCurrency(user.getBaseCurrency() == null || user.getBaseCurrency().isBlank()
                         ? "CNY"
                         : user.getBaseCurrency())
+                .createdAt(user.getCreatedAt() == null ? null : user.getCreatedAt().toString())
                 .build();
     }
 }

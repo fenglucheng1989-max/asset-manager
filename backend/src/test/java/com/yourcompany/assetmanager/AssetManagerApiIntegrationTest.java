@@ -82,6 +82,12 @@ class AssetManagerApiIntegrationTest {
                 "colorHex", "#FF6B6B"
         ));
 
+        mockMvc.perform(get("/api/v1/asset/accounts")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].id").value(creditCardId))
+                .andExpect(jsonPath("$.data[1].id").value(bankId));
+
         mockMvc.perform(get("/api/v1/asset/overview")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
@@ -178,7 +184,8 @@ class AssetManagerApiIntegrationTest {
         mockMvc.perform(get("/api/v1/user/profile")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.baseCurrency").value("CNY"));
+                .andExpect(jsonPath("$.data.baseCurrency").value("CNY"))
+                .andExpect(jsonPath("$.data.createdAt").isNotEmpty());
 
         mockMvc.perform(put("/api/v1/user/profile/base-currency")
                         .header("Authorization", "Bearer " + token)

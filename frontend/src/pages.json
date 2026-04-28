@@ -27,7 +27,7 @@
     {
       "path": "pages/transaction/list",
       "style": {
-        "navigationBarTitleText": "记账"
+        "navigationBarTitleText": "账本"
       }
     },
     {
@@ -65,7 +65,7 @@
       },
       {
         "pagePath": "pages/transaction/list",
-        "text": "记账"
+        "text": "账本"
       },
       {
         "pagePath": "pages/mine/mine",

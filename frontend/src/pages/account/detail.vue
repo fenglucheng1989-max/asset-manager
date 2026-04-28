@@ -61,6 +61,7 @@
     <view class="bottom-actions" v-if="account">
       <button class="action-btn secondary" @click="goEdit">设置</button>
       <button class="action-btn danger" @click="handleArchive">归档资产</button>
+      <button class="action-btn danger solid" @click="handleDelete">删除账户</button>
     </view>
 
     <view v-if="showAdjustSheet" class="sheet-mask" @click="closeAdjustSheet">
@@ -213,6 +214,22 @@ export default {
           const res = await assetStore.archiveAccount(this.accountId, true)
           if (res && res.code === 200) {
             uni.showToast({ title: '已归档', icon: 'success' })
+            setTimeout(() => uni.navigateBack(), 800)
+          }
+        }
+      })
+    },
+    handleDelete() {
+      uni.showModal({
+        title: '删除账户',
+        content: '确认永久删除该账户？删除后账户和余额历史将不再显示。',
+        confirmColor: '#d94a62',
+        success: async (result) => {
+          if (!result.confirm) return
+          const assetStore = useAssetStore()
+          const res = await assetStore.deleteAccount(this.accountId)
+          if (res && res.code === 200) {
+            uni.showToast({ title: '账户已删除', icon: 'success' })
             setTimeout(() => uni.navigateBack(), 800)
           }
         }
@@ -462,6 +479,12 @@ export default {
   background: #ffffff;
   color: #d94a62;
   border: 1rpx solid #f0c3ca;
+}
+
+.action-btn.danger.solid {
+  background: #d94a62;
+  color: #ffffff;
+  border: none;
 }
 
 .sheet-mask {

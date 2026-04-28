@@ -41,7 +41,7 @@ public class AssetAccountServiceImpl implements AssetAccountService {
                 .archived(Boolean.TRUE.equals(dto.getArchived()))
                 .icon(dto.getIcon())
                 .colorHex(dto.getColorHex())
-                .sortOrder(dto.getSortOrder())
+                .sortOrder(resolveCreateSortOrder(userId, dto.getSortOrder()))
                 .remark(dto.getRemark())
                 .build();
 
@@ -107,7 +107,8 @@ public class AssetAccountServiceImpl implements AssetAccountService {
                 new LambdaQueryWrapper<AssetAccount>()
                         .eq(AssetAccount::getUserId, userId)
                         .eq(AssetAccount::getArchived, false)
-                        .orderByAsc(AssetAccount::getSortOrder));
+                        .orderByAsc(AssetAccount::getSortOrder)
+                        .orderByDesc(AssetAccount::getId));
     }
 
     @Override
@@ -176,6 +177,18 @@ public class AssetAccountServiceImpl implements AssetAccountService {
     private String normalizeCurrency(String currency) {
         if (currency == null || currency.isBlank()) return "CNY";
         return currency.trim().toUpperCase();
+    }
+
+    private int resolveCreateSortOrder(Long userId, Integer requestedSortOrder) {
+        if (requestedSortOrder != null) return requestedSortOrder;
+        AssetAccount firstAccount = assetAccountMapper.selectOne(
+                new LambdaQueryWrapper<AssetAccount>()
+                        .eq(AssetAccount::getUserId, userId)
+                        .eq(AssetAccount::getArchived, false)
+                        .orderByAsc(AssetAccount::getSortOrder)
+                        .last("LIMIT 1"));
+        if (firstAccount == null || firstAccount.getSortOrder() == null) return 0;
+        return firstAccount.getSortOrder() - 1;
     }
 
     private BigDecimal normalizeRate(BigDecimal rate) {

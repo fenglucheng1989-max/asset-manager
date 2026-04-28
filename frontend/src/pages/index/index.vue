@@ -1,9 +1,9 @@
 <template>
   <view class="container">
-    <view class="net-worth-card">
+    <view class="net-worth-card" @click="goToTrend">
       <view class="card-title-row">
         <text class="card-title">净资产</text>
-        <text class="card-badge">{{ overview.accountCount || accounts.length }} 个账户</text>
+        <text class="card-badge">趋势 ›</text>
       </view>
       <view class="net-worth-amount">{{ formatMoney(overview.netWorth) }}</view>
       <view class="card-detail">
@@ -24,7 +24,7 @@
 
     <view class="login-tip" v-if="!hasToken">
       <text class="login-tip-title">先登录后开始记录资产</text>
-      <text class="login-tip-text">登录后可新增账户、查看净资产趋势和账户金额排行。</text>
+      <text class="login-tip-text">登录后可新增账户、查看净资产趋势和管理我的账户。</text>
       <button class="login-tip-btn" @click="goToMine">去登录</button>
     </view>
 
@@ -34,45 +34,59 @@
       <button class="error-btn" @click="handleManualRefresh">重新加载</button>
     </view>
 
-    <view class="trend-section" v-if="hasToken" @click="goToTrend">
-      <view class="section-header">
-        <view>
-          <text class="section-title">资产趋势</text>
-          <text class="section-subtitle">{{ latestSnapshot ? `最近快照 ${formatSnapshotDate(latestSnapshot.snapshotDate)}` : '查看净资产走势和快照记录' }}</text>
-        </view>
-        <text class="section-arrow">›</text>
-      </view>
-    </view>
-
     <view class="account-section" v-if="hasToken">
       <view class="section-header">
-        <text class="section-title">账户金额排行</text>
+        <view>
+          <text class="section-title">我的账户</text>
+        </view>
       </view>
 
       <view class="account-list" v-if="accounts.length > 0">
         <view
           class="account-item"
-          v-for="(account, index) in rankedAccounts"
+          :class="{ dragging: dragIndex === index, swiped: swipedAccountId === account.id }"
+          v-for="(account, index) in accountRows"
           :key="account.id"
           @click="handleAccountClick(account.id)"
+          @touchstart="handleAccountTouchStart(index, account, $event)"
+          @touchmove="handleAccountTouchMove(index, account, $event)"
+          @touchend="handleAccountTouchEnd(index, account)"
+          @touchcancel="handleAccountTouchEnd(index, account)"
+          @longpress="startDrag(index, account)"
         >
-          <view class="account-left">
-            <view class="account-icon" :style="{ backgroundColor: account.colorHex || '#2EBD85' }">
-              <text class="icon-text">{{ getIconText(account.name) }}</text>
-            </view>
-            <view class="account-info">
-              <text class="account-name">{{ account.name }}</text>
-              <text class="account-type">{{ getAccountTypeName(account.accountType) }}</text>
-            </view>
+          <view class="delete-underlay" @click.stop="confirmDeleteAccount(account)">
+            <text>删除</text>
           </view>
-          <view class="account-right">
-            <text :class="['account-balance', { liability: account.isLiability }]">
-              {{ account.isLiability ? '-' : '' }}{{ formatMoney(toBaseAmount(account)) }}
-            </text>
-            <text class="account-currency">{{ account.rankPercent }}%</text>
+          <view class="account-surface" :style="getAccountSurfaceStyle(account, index)">
+          <view class="account-main">
+            <view class="account-left">
+              <view class="account-icon" :style="{ backgroundColor: account.colorHex || '#2EBD85' }">
+                <text class="icon-text">{{ getIconText(account.name) }}</text>
+              </view>
+              <view class="account-info">
+                <text class="account-name">{{ account.name }}</text>
+                <view class="account-meta">
+                  <text>{{ getAccountTypeName(account.accountType) }}</text>
+                  <text class="meta-dot">·</text>
+                  <text>占比 {{ account.structurePercent }}%</text>
+                </view>
+              </view>
+            </view>
+            <view class="account-right">
+              <text :class="['account-balance', { liability: account.isLiability }]">
+                {{ account.isLiability ? '-' : '' }}{{ formatMoney(toBaseAmount(account)) }}
+              </text>
+              <text class="account-currency" v-if="account.currency && account.currency !== 'CNY'">
+                {{ account.currency }} {{ Number(account.currentBalance || 0).toFixed(2) }}
+              </text>
+            </view>
           </view>
           <view class="account-rank-track">
-            <view class="account-rank-bar" :style="{ width: account.rankPercent + '%', backgroundColor: account.colorHex || '#2EBD85' }"></view>
+            <view class="account-rank-bar" :style="{ width: account.structurePercent + '%', backgroundColor: account.colorHex || '#2EBD85' }"></view>
+          </view>
+          <view class="drag-hint" v-if="dragIndex === index">
+            <text>拖动调整顺序</text>
+          </view>
           </view>
         </view>
       </view>
@@ -83,7 +97,7 @@
 
       <button class="add-account-btn" @click="goToAddAccount">
         <text class="add-icon">+</text>
-        <text>添加账户</text>
+        <text>新增账户</text>
       </button>
     </view>
   </view>
@@ -107,29 +121,38 @@ export default {
       hasToken: false,
       overview: { ...DEFAULT_OVERVIEW },
       accounts: [],
-      snapshots: [],
       pageError: '',
-      isLoading: false
+      isLoading: false,
+      isSorting: false,
+      isDeleting: false,
+      pendingSortSave: false,
+      isPressDragging: false,
+      dragRects: [],
+      touchStartX: 0,
+      touchStartY: 0,
+      touchAccountId: null,
+      dragIndex: -1,
+      dragAccountId: null,
+      dragOffsetY: 0,
+      swipedAccountId: null
     }
   },
   computed: {
-    rankedAccounts() {
+    accountRows() {
       const rows = [...this.accounts]
         .map(account => ({ ...account, baseAmount: toBaseAmount(account) }))
-        .sort((a, b) => b.baseAmount - a.baseAmount)
       const total = rows.reduce((sum, item) => sum + Math.abs(item.baseAmount), 0)
       return rows.map(item => ({
         ...item,
-        rankPercent: total > 0 ? Math.max(1, Math.round(Math.abs(item.baseAmount) / total * 100)) : 0
+        structurePercent: total > 0 ? Math.max(1, Math.round(Math.abs(item.baseAmount) / total * 100)) : 0
       }))
-    },
-    latestSnapshot() {
-      if (!this.snapshots.length) return null
-      return this.snapshots[this.snapshots.length - 1]
     }
   },
   onShow() {
     this.refreshData()
+  },
+  beforeUnmount() {
+    this.endDrag()
   },
   methods: {
     formatMoney,
@@ -146,7 +169,6 @@ export default {
       if (!this.hasToken) {
         this.overview = { ...DEFAULT_OVERVIEW }
         this.accounts = []
-        this.snapshots = []
         return
       }
 
@@ -155,10 +177,8 @@ export default {
         const assetStore = useAssetStore()
         await assetStore.fetchOverview()
         await assetStore.fetchAccounts()
-        await assetStore.fetchSnapshots()
         this.overview = { ...DEFAULT_OVERVIEW, ...(assetStore.overview || {}) }
         this.accounts = Array.isArray(assetStore.accounts) ? [...assetStore.accounts] : []
-        this.snapshots = Array.isArray(assetStore.snapshots) ? [...assetStore.snapshots] : []
         this.pageError = ''
         uni.removeStorageSync('__last_app_error__')
         if (options.showToast) {
@@ -173,17 +193,162 @@ export default {
         this.isLoading = false
       }
     },
-    formatSnapshotDate(value) {
-      if (!value) return '--'
-      const parts = String(value).split('-')
-      if (parts.length !== 3) return value
-      return `${Number(parts[1])}月${Number(parts[2])}日`
-    },
     getIconText(name) {
       return name ? name.substring(0, 1) : '?'
     },
     handleAccountClick(id) {
+      if (this.dragIndex >= 0 || this.isPressDragging) return
+      if (this.swipedAccountId) {
+        this.swipedAccountId = null
+        return
+      }
       uni.navigateTo({ url: `/pages/account/detail?id=${id}` })
+    },
+    handleAccountTouchStart(index, account, event) {
+      const touch = event.touches && event.touches[0]
+      if (!touch) return
+      this.touchStartX = touch.clientX
+      this.touchStartY = touch.clientY
+      this.touchAccountId = account.id
+    },
+    handleAccountTouchMove(index, account, event) {
+      const touch = event.touches && event.touches[0]
+      if (!touch || this.touchAccountId !== account.id) return
+      const deltaX = touch.clientX - this.touchStartX
+      const deltaY = touch.clientY - this.touchStartY
+
+      if (this.dragIndex >= 0) {
+        this.dragOffsetY = touch.clientY - this.touchStartY
+        this.handleDragMove(event)
+        return
+      }
+
+      if (Math.abs(deltaX) > 42 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+        this.swipedAccountId = deltaX < 0 ? account.id : null
+      }
+    },
+    handleAccountTouchEnd() {
+      if (this.dragIndex >= 0) {
+        this.endDrag()
+      }
+      this.touchAccountId = null
+    },
+    startDrag(index, account) {
+      if (this.accounts.length < 2) return
+      if (this.swipedAccountId) this.swipedAccountId = null
+      this.dragIndex = index
+      this.dragAccountId = account.id
+      this.dragOffsetY = 0
+      this.touchAccountId = account.id
+      this.isPressDragging = true
+      this.cacheDragRects()
+      uni.vibrateShort && uni.vibrateShort()
+    },
+    cacheDragRects() {
+      this.$nextTick(() => {
+        uni.createSelectorQuery()
+          .in(this)
+          .selectAll('.account-item')
+          .boundingClientRect((rects) => {
+            this.dragRects = Array.isArray(rects) ? rects : []
+          })
+          .exec()
+      })
+    },
+    getPointerY(event) {
+      const touch = event && event.touches && event.touches[0]
+      return touch ? touch.clientY : event.clientY
+    },
+    handleDragMove(event) {
+      if (this.dragIndex < 0) return
+      if (event && event.preventDefault) {
+        event.preventDefault()
+      }
+      const y = this.getPointerY(event)
+      const targetIndex = this.dragRects.findIndex(rect => y >= rect.top && y <= rect.bottom)
+      if (targetIndex < 0 || targetIndex === this.dragIndex) return
+
+      const nextAccounts = [...this.accounts]
+      const [item] = nextAccounts.splice(this.dragIndex, 1)
+      nextAccounts.splice(targetIndex, 0, item)
+      this.accounts = nextAccounts
+      this.dragIndex = targetIndex
+      this.touchStartY = y
+      this.dragOffsetY = 0
+      this.pendingSortSave = true
+      this.cacheDragRects()
+    },
+    endDrag() {
+      if (this.dragIndex < 0) return
+      this.dragIndex = -1
+      this.dragAccountId = null
+      this.dragOffsetY = 0
+      this.dragRects = []
+      this.touchAccountId = null
+      setTimeout(() => {
+        this.isPressDragging = false
+      }, 80)
+      if (this.pendingSortSave) {
+        this.saveSort()
+      }
+    },
+    async saveSort() {
+      if (this.isSorting) return
+      this.isSorting = true
+      try {
+        const assetStore = useAssetStore()
+        const sortedIds = this.accounts.map(item => item.id)
+        const res = await assetStore.updateSort(sortedIds)
+        if (res && res.code === 200) {
+          this.accounts = Array.isArray(assetStore.accounts) ? [...assetStore.accounts] : this.accounts
+          this.pendingSortSave = false
+          uni.showToast({ title: '排序已保存', icon: 'success' })
+        }
+      } catch (error) {
+        await this.refreshData()
+      } finally {
+        this.isSorting = false
+      }
+    },
+    getAccountSurfaceStyle(account) {
+      if (this.dragAccountId === account.id) {
+        return {
+          transform: `translateY(${this.dragOffsetY}px)`,
+          transition: 'none',
+          zIndex: 3
+        }
+      }
+      return {
+        transform: this.swipedAccountId === account.id ? 'translateX(-132rpx)' : 'translateX(0)',
+        transition: 'transform 0.18s ease',
+        zIndex: 1
+      }
+    },
+    confirmDeleteAccount(account) {
+      uni.showModal({
+        title: '删除账户',
+        content: `确认删除“${account.name}”？删除后账户和余额历史将不再显示。`,
+        confirmColor: '#d94a62',
+        success: async (result) => {
+          if (!result.confirm) return
+          await this.deleteAccount(account.id)
+        }
+      })
+    },
+    async deleteAccount(id) {
+      if (this.isDeleting) return
+      this.isDeleting = true
+      try {
+        const assetStore = useAssetStore()
+        const res = await assetStore.deleteAccount(id)
+        if (res && res.code === 200) {
+          uni.showToast({ title: '账户已删除', icon: 'success' })
+          await this.refreshData()
+          this.swipedAccountId = null
+        }
+      } finally {
+        this.isDeleting = false
+      }
     },
     goToAddAccount() {
       uni.navigateTo({ url: '/pages/account/form' })
@@ -215,6 +380,10 @@ export default {
   margin-bottom: 26rpx;
   color: #ffffff;
   box-shadow: 0 18rpx 40rpx rgba(17, 32, 45, 0.2);
+}
+
+.net-worth-card:active {
+  opacity: 0.94;
 }
 
 .card-title-row {
@@ -281,7 +450,6 @@ export default {
 }
 
 .account-section,
-.trend-section,
 .login-tip,
 .error-tip,
 .loading-tip {
@@ -371,30 +539,6 @@ export default {
   line-height: 34rpx;
 }
 
-.section-arrow {
-  width: 48rpx;
-  height: 48rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: #f2f6f4;
-  color: #226f63;
-  font-size: 44rpx;
-  line-height: 44rpx;
-  font-weight: 300;
-}
-
-.trend-section {
-  position: relative;
-  overflow: hidden;
-}
-
-.trend-section:active {
-  opacity: 0.88;
-}
-
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -413,24 +557,62 @@ export default {
 .account-list {
   display: flex;
   flex-direction: column;
+  gap: 18rpx;
 }
 
 .account-item {
   position: relative;
-  flex-wrap: wrap;
+  border-radius: 18rpx;
+  user-select: none;
+  overflow: hidden;
+  background: #fbfcfd;
+}
+
+.account-item.dragging {
+  box-shadow: 0 16rpx 34rpx rgba(34, 111, 99, 0.12);
+  transform: scale(1.01);
+  touch-action: none;
+}
+
+.delete-underlay {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 132rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #d94a62;
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
+.account-surface {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24rpx;
+  border-radius: 18rpx;
+  background: #fbfcfd;
+  border: 1rpx solid #edf1f4;
+  transition: transform 0.18s ease;
+}
+
+.account-main {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 26rpx 0;
-  border-bottom: 1rpx solid #edf1f4;
-  user-select: none;
+  align-items: flex-start;
+  gap: 20rpx;
+  width: 100%;
 }
 
 .account-rank-track {
   width: 100%;
-  height: 10rpx;
-  margin-left: 100rpx;
-  margin-top: 14rpx;
+  height: 8rpx;
+  margin-top: 20rpx;
   border-radius: 999rpx;
   background: #edf2f5;
   overflow: hidden;
@@ -441,19 +623,11 @@ export default {
   border-radius: 999rpx;
 }
 
-.account-item.dragging {
-  opacity: 0.72;
-  background: #f8fafc;
-}
-
-.account-item:last-child {
-  border-bottom: none;
-}
-
 .account-left {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   min-width: 0;
+  flex: 1;
 }
 
 .account-icon {
@@ -477,6 +651,7 @@ export default {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  padding-top: 2rpx;
 }
 
 .account-name {
@@ -484,26 +659,40 @@ export default {
   color: #17202a;
   font-weight: 650;
   margin-bottom: 8rpx;
-  max-width: 340rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.account-type {
-  font-size: 24rpx;
+.account-meta {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  color: #7b8798;
+  font-size: 23rpx;
+  line-height: 32rpx;
+  min-width: 0;
+}
+
+.meta-dot {
   color: #7b8798;
 }
 
 .account-right {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 18rpx;
+  align-items: flex-end;
+  gap: 8rpx;
   text-align: right;
   flex-shrink: 0;
-  margin-left: 20rpx;
+}
+
+.drag-hint {
+  margin-top: 16rpx;
+  color: #226f63;
+  font-size: 22rpx;
+  line-height: 30rpx;
+  text-align: right;
 }
 
 .account-balance {
@@ -527,13 +716,14 @@ export default {
   align-items: center;
   justify-content: center;
   margin: 24rpx 0 0;
-  height: 82rpx;
-  line-height: 82rpx;
-  border-radius: 14rpx;
-  background: #f6f8fb;
+  height: 86rpx;
+  line-height: 86rpx;
+  border-radius: 18rpx;
+  background: #eef8f4;
   color: #226f63;
-  border: 1rpx solid #dbe7e3;
+  border: 1rpx dashed #a9d6ca;
   font-size: 28rpx;
+  font-weight: 750;
 }
 
 .empty-state {

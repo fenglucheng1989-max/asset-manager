@@ -16,4 +16,5 @@ public class UserProfileVO {
     private String email;
     private String role;
     private String baseCurrency;
+    private String createdAt;
 }

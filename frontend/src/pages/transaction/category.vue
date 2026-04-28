@@ -118,7 +118,7 @@ export default {
     deleteCategory(item) {
       uni.showModal({
         title: '删除分类',
-        content: `确认删除“${item.name}”？已被流水使用的分类不能删除。`,
+        content: `确认删除“${item.name}”？已被记录使用的分类不能删除。`,
         success: async (result) => {
           if (!result.confirm) return
           const store = useTransactionStore()

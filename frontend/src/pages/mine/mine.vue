@@ -1,29 +1,110 @@
 <template>
   <view class="container">
     <view v-if="isLoggedIn" class="profile-section">
-      <view class="profile-header">
-        <view class="avatar">
-          <text class="avatar-text">{{ username.substring(0, 1).toUpperCase() }}</text>
-        </view>
-        <view class="profile-copy">
-          <text class="username">{{ username }}</text>
-          <text class="profile-subtitle">当前账号已登录，资产数据可同步使用</text>
-        </view>
-      </view>
-
-      <view class="profile-meta">
-        <text class="meta-label">登录状态</text>
-        <text class="meta-value">已登录</text>
-      </view>
-
-      <view class="profile-meta currency-meta">
-        <text class="meta-label">默认本位币</text>
-        <picker :range="currencyOptions" range-key="label" :value="currencyIndex" @change="handleCurrencyChange">
-          <view class="currency-picker">
-            <text>{{ currencyOptions[currencyIndex].label }}</text>
-            <text class="picker-arrow">></text>
+      <view class="profile-card">
+        <view class="profile-header">
+          <view class="avatar">
+            <text class="avatar-text">{{ username.substring(0, 1).toUpperCase() }}</text>
           </view>
-        </picker>
+          <view class="profile-copy">
+            <text class="username">{{ username }}</text>
+            <text class="profile-email">{{ profileEmail }}</text>
+            <text class="profile-subtitle">注册于 {{ registeredDate }}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="net-card" @click="goHome">
+        <view>
+          <text class="net-label">净资产</text>
+          <text class="net-value">{{ formatMoney(overview.netWorth) }}</text>
+        </view>
+        <text class="net-arrow">›</text>
+      </view>
+
+      <view class="menu-group">
+        <view class="menu-item" @click="goTrend">
+          <text class="menu-icon">趋</text>
+          <text class="menu-title">资产趋势</text>
+          <text class="menu-arrow">›</text>
+        </view>
+        <view class="menu-item" @click="goHome">
+          <text class="menu-icon">账</text>
+          <text class="menu-title">账户管理</text>
+          <text class="menu-arrow">›</text>
+        </view>
+        <view class="menu-item" @click="goTrend">
+          <text class="menu-icon">照</text>
+          <view class="menu-copy">
+            <text class="menu-title">快照管理</text>
+            <text class="menu-subtitle">查看历史快照或记录今日资产</text>
+          </view>
+          <text class="menu-arrow">›</text>
+        </view>
+      </view>
+
+      <view class="menu-group">
+        <view class="menu-item disabled" @click="showComingSoon('主题设置')">
+          <text class="menu-icon">色</text>
+          <text class="menu-title">主题设置</text>
+          <text class="menu-badge">预留</text>
+        </view>
+        <view class="menu-item">
+          <text class="menu-icon">币</text>
+          <text class="menu-title">默认货币</text>
+          <picker :range="currencyOptions" range-key="label" :value="currencyIndex" @change="handleCurrencyChange">
+            <view class="inline-picker">
+              <text>{{ baseCurrency }}</text>
+              <text class="menu-arrow">›</text>
+            </view>
+          </picker>
+        </view>
+      </view>
+
+      <view class="menu-group">
+        <view class="menu-item" @click="showComingSoon('导出数据')">
+          <text class="menu-icon">导</text>
+          <text class="menu-title">导出数据</text>
+          <text class="menu-arrow">›</text>
+        </view>
+        <view class="menu-item disabled" @click="showComingSoon('备份与同步')">
+          <text class="menu-icon">备</text>
+          <text class="menu-title">备份与同步</text>
+          <text class="menu-badge">预留</text>
+        </view>
+        <view class="menu-item danger" @click="confirmClearData">
+          <text class="menu-icon">清</text>
+          <text class="menu-title">清空所有数据</text>
+          <text class="menu-arrow">›</text>
+        </view>
+      </view>
+
+      <view class="menu-group">
+        <view class="menu-item" @click="showComingSoon('修改密码')">
+          <text class="menu-icon">密</text>
+          <text class="menu-title">修改密码</text>
+          <text class="menu-arrow">›</text>
+        </view>
+        <view class="menu-item disabled" @click="showComingSoon('生物识别解锁')">
+          <text class="menu-icon">锁</text>
+          <text class="menu-title">生物识别解锁</text>
+          <switch disabled :checked="false" color="#2EBD85" />
+        </view>
+        <view class="menu-item danger" @click="showComingSoon('注销账号')">
+          <text class="menu-icon">销</text>
+          <text class="menu-title">注销账号</text>
+          <text class="menu-arrow">›</text>
+        </view>
+      </view>
+
+      <view class="about-card">
+        <text class="about-title">关于资产管家 v1.0</text>
+        <view class="about-links">
+          <text @click="showComingSoon('用户协议')">用户协议</text>
+          <text class="about-divider">|</text>
+          <text @click="showComingSoon('隐私政策')">隐私政策</text>
+        </view>
+        <text class="feedback" @click="showComingSoon('意见反馈')">意见反馈</text>
       </view>
 
       <button class="logout-btn" @click="handleLogout">退出登录</button>
@@ -59,7 +140,17 @@
 </template>
 
 <script>
+import { useAssetStore } from '../../store/asset'
 import { useUserStore } from '../../store/user'
+import { formatMoney } from '../../utils/money'
+
+const DEFAULT_OVERVIEW = {
+  totalAsset: 0,
+  totalLiability: 0,
+  netWorth: 0,
+  accountCount: 0,
+  lastUpdateTime: null
+}
 
 export default {
   data() {
@@ -72,6 +163,8 @@ export default {
       },
       isLoggedIn: false,
       username: 'preview',
+      profile: null,
+      overview: { ...DEFAULT_OVERVIEW },
       baseCurrency: 'CNY',
       currencyOptions: [
         { label: '人民币 CNY', value: 'CNY' },
@@ -87,12 +180,21 @@ export default {
     currencyIndex() {
       const index = this.currencyOptions.findIndex(item => item.value === this.baseCurrency)
       return index < 0 ? 0 : index
+    },
+    profileEmail() {
+      return this.profile && this.profile.email ? this.profile.email : '未设置邮箱'
+    },
+    registeredDate() {
+      const value = this.profile && this.profile.createdAt ? this.profile.createdAt : ''
+      if (!value) return '--'
+      return String(value).slice(0, 10)
     }
   },
   onShow() {
     this.refreshUser()
   },
   methods: {
+    formatMoney,
     refreshUser() {
       const token = uni.getStorageSync('token') || ''
       const username = uni.getStorageSync('username') || 'preview'
@@ -100,22 +202,33 @@ export default {
 
       this.isLoggedIn = !!token
       this.username = username
+      this.profile = profile
       this.baseCurrency = profile && profile.baseCurrency ? profile.baseCurrency : 'CNY'
 
       try {
         const userStore = useUserStore()
-        if (userStore) {
-          this.isLoggedIn = userStore.isLoggedIn
-          this.username = userStore.username || username
-          this.baseCurrency = userStore.profile && userStore.profile.baseCurrency ? userStore.profile.baseCurrency : this.baseCurrency
-          if (this.isLoggedIn) {
-            userStore.fetchProfile().then(() => {
-              this.baseCurrency = userStore.profile && userStore.profile.baseCurrency ? userStore.profile.baseCurrency : 'CNY'
-            })
-          }
+        this.isLoggedIn = userStore.isLoggedIn
+        this.username = userStore.username || username
+        this.profile = userStore.profile || profile
+        this.baseCurrency = userStore.profile && userStore.profile.baseCurrency ? userStore.profile.baseCurrency : this.baseCurrency
+        if (this.isLoggedIn) {
+          userStore.fetchProfile().then(() => {
+            this.profile = userStore.profile
+            this.baseCurrency = userStore.profile && userStore.profile.baseCurrency ? userStore.profile.baseCurrency : 'CNY'
+          })
+          this.fetchOverview()
         }
       } catch (error) {
         console.error('Read user store failed:', error)
+      }
+    },
+    async fetchOverview() {
+      try {
+        const assetStore = useAssetStore()
+        await assetStore.fetchOverview()
+        this.overview = { ...DEFAULT_OVERVIEW, ...(assetStore.overview || {}) }
+      } catch (error) {
+        this.overview = { ...DEFAULT_OVERVIEW }
       }
     },
     async handleCurrencyChange(event) {
@@ -177,6 +290,22 @@ export default {
           uni.showToast({ title: '已退出', icon: 'success' })
         }
       })
+    },
+    goHome() {
+      uni.switchTab({ url: '/pages/index/index' })
+    },
+    goTrend() {
+      uni.navigateTo({ url: '/pages/trend/trend' })
+    },
+    showComingSoon(name) {
+      uni.showToast({ title: `${name}暂未开放`, icon: 'none' })
+    },
+    confirmClearData() {
+      uni.showModal({
+        title: '清空所有数据',
+        content: '该能力需要后端数据清理接口支持，当前版本暂未开放。',
+        showCancel: false
+      })
     }
   }
 }
@@ -184,26 +313,42 @@ export default {
 
 <style scoped>
 .container {
-  padding: 28rpx 24rpx calc(144rpx + env(safe-area-inset-bottom));
+  padding: 24rpx 22rpx calc(144rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
   box-sizing: border-box;
 }
 
-.profile-section {
-  padding-top: 24rpx;
+.profile-section,
+.login-section {
+  padding-top: 8rpx;
+}
+
+.profile-card,
+.net-card,
+.menu-group,
+.about-card,
+.login-card {
+  background: #ffffff;
+  border-radius: 18rpx;
+  border: 1rpx solid #edf1f4;
+  box-shadow: 0 8rpx 22rpx rgba(26, 42, 58, 0.045);
+}
+
+.profile-card {
+  padding: 30rpx;
+  margin-bottom: 18rpx;
 }
 
 .profile-header {
   display: flex;
   align-items: center;
   gap: 24rpx;
-  margin-bottom: 34rpx;
 }
 
 .avatar {
   width: 104rpx;
   height: 104rpx;
-  border-radius: 16rpx;
+  border-radius: 22rpx;
   background: linear-gradient(135deg, #14202d, #226f63);
   display: flex;
   align-items: center;
@@ -214,7 +359,7 @@ export default {
 .avatar-text {
   color: #ffffff;
   font-size: 42rpx;
-  font-weight: 800;
+  font-weight: 850;
 }
 
 .profile-copy {
@@ -225,8 +370,8 @@ export default {
 .username {
   display: block;
   font-size: 36rpx;
-  line-height: 48rpx;
-  font-weight: 700;
+  line-height: 46rpx;
+  font-weight: 850;
   color: #17202a;
   margin-bottom: 8rpx;
   overflow: hidden;
@@ -234,70 +379,171 @@ export default {
   white-space: nowrap;
 }
 
-.profile-subtitle {
-  font-size: 26rpx;
-  color: #64748b;
-  line-height: 38rpx;
+.profile-email,
+.profile-subtitle,
+.menu-subtitle {
+  display: block;
+  color: #7b8798;
+  font-size: 24rpx;
+  line-height: 34rpx;
 }
 
-.login-card {
-  background: #ffffff;
-  border-radius: 16rpx;
-  border: 1rpx solid #edf1f4;
-  box-shadow: 0 12rpx 30rpx rgba(26, 42, 58, 0.06);
-}
-
-.profile-meta {
+.net-card {
+  padding: 28rpx 30rpx;
+  margin-bottom: 18rpx;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  padding: 26rpx 0;
-  border-top: 1rpx solid #e6edf2;
-  border-bottom: 1rpx solid #e6edf2;
+  background: linear-gradient(135deg, #14202d 0%, #174a43 100%);
 }
 
-.currency-meta {
-  border-top: none;
-  margin-bottom: 32rpx;
+.net-label {
+  display: block;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 24rpx;
+  line-height: 34rpx;
 }
 
-.meta-label {
-  color: #64748b;
-  font-size: 28rpx;
+.net-value {
+  display: block;
+  margin-top: 8rpx;
+  color: #ffd166;
+  font-size: 42rpx;
+  line-height: 52rpx;
+  font-weight: 850;
+  word-break: break-all;
 }
 
-.meta-value {
-  color: #226f63;
-  font-size: 28rpx;
-  font-weight: 650;
+.net-arrow {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 48rpx;
+  line-height: 48rpx;
 }
 
-.currency-picker {
+.menu-group {
+  margin-bottom: 18rpx;
+  overflow: hidden;
+}
+
+.menu-item {
+  min-height: 88rpx;
+  padding: 0 24rpx;
   display: flex;
   align-items: center;
-  color: #226f63;
-  font-size: 28rpx;
-  font-weight: 650;
+  gap: 18rpx;
+  border-bottom: 1rpx solid #edf1f4;
 }
 
-.picker-arrow {
-  margin-left: 10rpx;
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-item.disabled {
+  opacity: 0.72;
+}
+
+.menu-icon {
+  width: 46rpx;
+  height: 46rpx;
+  border-radius: 14rpx;
+  background: #eef5f2;
+  color: #226f63;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  font-weight: 850;
+  flex-shrink: 0;
+}
+
+.menu-item.danger .menu-icon {
+  background: #fff1f3;
+  color: #d94a62;
+}
+
+.menu-title {
+  color: #17202a;
+  font-size: 29rpx;
+  line-height: 38rpx;
+  font-weight: 760;
+  flex: 1;
+}
+
+.menu-copy {
+  flex: 1;
+  min-width: 0;
+  padding: 18rpx 0;
+}
+
+.menu-arrow,
+.inline-picker {
   color: #94a3b8;
+  font-size: 32rpx;
+  flex-shrink: 0;
+}
+
+.inline-picker {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  color: #226f63;
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
+.menu-badge {
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: #f3f6f8;
+  color: #7b8798;
+  font-size: 22rpx;
+  flex-shrink: 0;
+}
+
+.about-card {
+  padding: 26rpx 28rpx;
+  margin-bottom: 22rpx;
+}
+
+.about-title {
+  display: block;
+  color: #17202a;
+  font-size: 28rpx;
+  line-height: 38rpx;
+  font-weight: 800;
+  margin-bottom: 14rpx;
+}
+
+.about-links {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  color: #226f63;
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.about-divider {
+  color: #c8d1da;
+}
+
+.feedback {
+  display: block;
+  margin-top: 14rpx;
+  color: #64748b;
+  font-size: 24rpx;
+  line-height: 34rpx;
 }
 
 .logout-btn {
   margin: 0;
-  height: 84rpx;
-  line-height: 84rpx;
-  border-radius: 14rpx;
+  height: 86rpx;
+  line-height: 86rpx;
+  border-radius: 18rpx;
   background: #ffffff;
   font-size: 30rpx;
   color: #d94a62;
   border: 1rpx solid #f0c3ca;
-}
-
-.login-section {
-  padding-top: 24rpx;
 }
 
 .login-card {

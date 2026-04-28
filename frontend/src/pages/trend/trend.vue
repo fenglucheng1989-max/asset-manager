@@ -96,9 +96,11 @@
             </view>
             <view class="rank-row sub">
               <text>{{ getAccountTypeName(account.accountType) }}</text>
-              <text v-if="account.currency && account.currency !== 'CNY'">
-                {{ account.currency }} {{ Number(account.currentBalance || 0).toFixed(2) }}
-              </text>
+              <text>{{ account.structurePercent }}%</text>
+            </view>
+            <view class="rank-row currency" v-if="account.currency && account.currency !== 'CNY'">
+              <text></text>
+              <text>{{ account.currency }} {{ Number(account.currentBalance || 0).toFixed(2) }}</text>
             </view>
             <view class="rank-track">
               <view class="rank-bar" :style="{ width: account.rankPercent + '%', backgroundColor: account.colorHex || '#2EBD85' }"></view>
@@ -115,7 +117,7 @@
     <view class="history-section">
       <view class="section-header">
         <text class="section-title">快照记录</text>
-        <text class="section-subtitle">已加载 {{ snapshots.length }} 条</text>
+        <text class="section-subtitle">分页加载，已显示 {{ snapshots.length }} 条</text>
       </view>
 
       <view class="history-list" v-if="snapshots.length > 0">
@@ -254,10 +256,11 @@ export default {
           baseAmount: toBaseAmount(account)
         }))
         .sort((a, b) => b.baseAmount - a.baseAmount)
-      const max = rows.length ? Math.max(...rows.map(item => item.baseAmount)) : 0
+      const total = rows.reduce((sum, item) => sum + Math.abs(item.baseAmount), 0)
       return rows.map(item => ({
         ...item,
-        rankPercent: max > 0 ? Math.max(8, Math.round((item.baseAmount / max) * 100)) : 0
+        structurePercent: total > 0 ? Math.round(Math.abs(item.baseAmount) / total * 100) : 0,
+        rankPercent: total > 0 ? Math.max(4, Math.round(Math.abs(item.baseAmount) / total * 100)) : 0
       }))
     }
   },
@@ -592,6 +595,13 @@ export default {
   color: #7b8798;
   font-size: 23rpx;
   line-height: 32rpx;
+}
+
+.rank-row.currency {
+  margin-top: 2rpx;
+  color: #94a3b8;
+  font-size: 22rpx;
+  line-height: 30rpx;
 }
 
 .rank-name {

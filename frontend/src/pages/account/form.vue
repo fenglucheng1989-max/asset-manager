@@ -25,7 +25,7 @@
 
       <view class="form-item type-item">
         <text class="form-label">账户类型</text>
-        <picker :range="filteredTypeOptions" range-key="label" :value="typeIndex" @change="selectType">
+        <picker class="field-picker" :range="filteredTypeOptions" range-key="label" :value="typeIndex" @change="selectType">
           <view class="form-picker">
             <text>{{ filteredTypeOptions[typeIndex] ? filteredTypeOptions[typeIndex].label : '请选择' }}</text>
             <text class="picker-arrow">›</text>
@@ -50,7 +50,7 @@
 
       <view class="form-item">
         <text class="form-label">币种</text>
-        <picker :range="currencyOptions" range-key="label" :value="currencyIndex" @change="selectCurrency">
+        <picker class="field-picker" :range="currencyOptions" range-key="label" :value="currencyIndex" @change="selectCurrency">
           <view class="form-picker">
             <text>{{ currencyOptions[currencyIndex].label }}</text>
             <text class="picker-arrow">›</text>
@@ -425,7 +425,7 @@ export default {
   border: 1rpx solid #edf1f4;
   box-shadow: 0 10rpx 26rpx rgba(26, 42, 58, 0.045);
   position: relative;
-  z-index: 10;
+  z-index: 1;
 }
 
 .group-title {
@@ -461,7 +461,7 @@ export default {
 
 .type-item {
   position: relative;
-  z-index: 12;
+  z-index: 3;
 }
 
 .form-label {
@@ -479,6 +479,13 @@ export default {
   font-size: 30rpx;
   color: #334155;
   min-width: 0;
+}
+
+.field-picker {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 4;
 }
 
 .remark-input {

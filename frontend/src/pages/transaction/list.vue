@@ -1,27 +1,37 @@
 <template>
   <view class="container">
-    <view class="period-panel">
-      <view class="period-tabs">
-        <view
-          v-for="item in periodOptions"
-          :key="item.value"
-          :class="['period-tab', { active: periodType === item.value }]"
-          @click="setPeriod(item.value)"
-        >
-          {{ item.label }}
-        </view>
+    <view class="ledger-toolbar">
+      <view class="date-nav">
+        <button class="date-nav-btn" @click="changePeriod(-1)">‹</button>
+        <picker :range="periodOptions" range-key="label" :value="periodIndex" @change="selectPeriodMode">
+          <view class="date-title">
+            <text class="date-label">{{ periodLabel }}</text>
+            <text class="period-mode">{{ periodTitle }} ▾</text>
+          </view>
+        </picker>
+        <button class="date-nav-btn" @click="changePeriod(1)">›</button>
       </view>
-      <view class="period-nav">
-        <text class="period-nav-btn" @click="changePeriod(-1)">‹</text>
-        <text class="period-label">{{ periodLabel }}</text>
-        <text class="period-nav-btn" @click="changePeriod(1)">›</text>
+      <view class="filter-row">
+        <scroll-view class="type-scroll" scroll-x>
+          <view class="type-chip-row">
+            <view v-for="item in typeFilters" :key="item.value" :class="['type-chip', { active: filterType === item.value }]" @click="setType(item.value)">
+              <text>{{ item.label }}</text>
+            </view>
+          </view>
+        </scroll-view>
+        <picker :disabled="isCategoryDisabled" :range="categoryOptions" range-key="name" :value="categoryIndex" @change="selectCategory">
+          <view :class="['category-pill', { disabled: isCategoryDisabled }]">
+            <text>{{ isCategoryDisabled ? '无分类' : selectedCategoryName }}</text>
+            <text class="category-arrow">›</text>
+          </view>
+        </picker>
       </view>
     </view>
 
     <view class="hero-card">
       <view class="hero-top">
         <view>
-          <text class="hero-label">{{ periodTitle }}流水净额</text>
+          <text class="hero-label">{{ periodTitle }}收支净额</text>
           <text :class="['hero-value', { negative: Number(report.net || 0) < 0 }]">{{ formatSignedMoney(report.net) }}</text>
         </view>
         <button class="hero-action" @click.stop="goCreate">记一笔</button>
@@ -38,47 +48,53 @@
       </view>
     </view>
 
-    <view class="tool-strip">
-      <view class="tool-item" @click="goBudget">
-        <text class="tool-label">月度预算</text>
-        <text class="tool-value">{{ budgetSummary }}</text>
+    <view class="budget-summary-card" :class="{ warning: budgetStatusLevel === 'warning', danger: budgetStatusLevel === 'danger' }" @click="goBudget">
+      <view class="budget-summary-head">
+        <view>
+          <text class="budget-title">月度预算</text>
+          <text class="budget-subtitle">{{ budgetStatusText }}</text>
+        </view>
+        <text class="budget-action">›</text>
+      </view>
+      <view class="budget-progress-track">
+        <view class="budget-progress-fill" :style="{ width: budgetProgressPercent }"></view>
+      </view>
+      <view class="budget-summary-foot">
+        <text>{{ budgetUsageText }}</text>
+        <text>{{ budgetBalanceText }}</text>
       </view>
     </view>
 
-    <view class="filter-card">
-      <view class="segmented">
-        <view v-for="item in typeFilters" :key="item.value" :class="['segment', { active: filterType === item.value }]" @click="setType(item.value)">
-          <text>{{ item.label }}</text>
-        </view>
-      </view>
-      <picker :range="categoryOptions" range-key="name" :value="categoryIndex" @change="selectCategory">
-        <view class="filter-line">
-          <text class="filter-label">分类</text>
-          <text class="filter-value">{{ selectedCategoryName }}</text>
-          <text class="filter-arrow">›</text>
-        </view>
-      </picker>
-    </view>
-
-    <view class="panel-card" v-if="report.categoryStats && report.categoryStats.length">
+    <view class="panel-card structure-card" v-if="hasStructureStats">
       <view class="section-header">
-        <text class="section-title">支出结构</text>
-        <text class="section-subtitle">按分类占比</text>
-      </view>
-      <view class="category-stat" v-for="item in report.categoryStats.slice(0, 5)" :key="item.categoryName">
-        <view class="stat-line-head">
-          <text>{{ item.categoryName }}</text>
-          <text>{{ formatPercent(item.percent) }}</text>
+        <text class="section-title">收支结构</text>
+        <view class="structure-switch">
+          <text :class="['structure-switch-item', { active: structureType === 'EXPENSE' }]" @click="structureType = 'EXPENSE'">支出</text>
+          <text :class="['structure-switch-item', { active: structureType === 'INCOME' }]" @click="structureType = 'INCOME'">收入</text>
         </view>
-        <view class="progress-track">
-          <view class="progress-fill" :style="{ width: formatPercent(item.percent), background: item.colorHex || '#2EBD85' }"></view>
+      </view>
+      <view class="pie-layout">
+        <view class="pie-ring" :style="{ background: buildPieStyle(activeStructureStats) }">
+          <view class="pie-center">
+            <text class="pie-label">{{ structureType === 'EXPENSE' ? '流出' : '流入' }}</text>
+            <text class="pie-value">{{ formatMoney(activeStructureTotal) }}</text>
+          </view>
+        </view>
+        <view class="pie-legend">
+          <view class="legend-item" v-for="item in activeStructureStats.slice(0, 5)" :key="`${structureType}-${item.categoryName}`">
+            <view class="legend-left">
+              <text class="legend-dot" :style="{ backgroundColor: item.colorHex || defaultStructureColor }"></text>
+              <text class="legend-name">{{ item.categoryName }}</text>
+            </view>
+            <text class="legend-percent">{{ formatPercent(item.percent) }}</text>
+          </view>
         </view>
       </view>
     </view>
 
     <view class="panel-card">
       <view class="section-header">
-        <text class="section-title">流水明细</text>
+        <text class="section-title">收支明细</text>
         <text class="section-subtitle">{{ records.length }} 条</text>
       </view>
 
@@ -96,7 +112,7 @@
       </view>
 
       <view v-else class="empty-card">
-        <text>当前筛选下暂无流水</text>
+        <text>当前筛选下暂无记录</text>
       </view>
     </view>
   </view>
@@ -112,12 +128,13 @@ export default {
       records: [],
       categories: [],
       budgets: [],
-      report: { income: 0, expense: 0, net: 0, categoryStats: [], trend: [] },
+      report: { income: 0, expense: 0, net: 0, categoryStats: [], incomeCategoryStats: [], trend: [] },
       anchorDate: '',
       currentMonth: '',
       periodType: 'month',
       filterType: '',
       filterCategoryId: null,
+      structureType: 'EXPENSE',
       periodOptions: [
         { label: '本周', value: 'week' },
         { label: '本月', value: 'month' },
@@ -134,8 +151,7 @@ export default {
   },
   computed: {
     visibleCategories() {
-      if (!this.filterType) return this.categories
-      return this.categories.filter(item => item.type === this.filterType)
+      return this.categories.filter(item => item.type !== 'TRANSFER')
     },
     categoryOptions() {
       return [{ id: null, name: '全部分类' }, ...this.visibleCategories]
@@ -148,9 +164,45 @@ export default {
       const selected = this.categoryOptions[this.categoryIndex]
       return selected ? selected.name : '全部分类'
     },
+    selectedTypeName() {
+      const selected = this.typeFilters.find(item => item.value === this.filterType)
+      return selected ? selected.label : '全部'
+    },
+    isCategoryDisabled() {
+      return this.filterType === 'TRANSFER'
+    },
+    expenseStats() {
+      return Array.isArray(this.report.categoryStats) ? this.report.categoryStats : []
+    },
+    incomeStats() {
+      return Array.isArray(this.report.incomeCategoryStats) ? this.report.incomeCategoryStats : []
+    },
+    hasExpenseStats() {
+      return this.expenseStats.length > 0
+    },
+    hasIncomeStats() {
+      return this.incomeStats.length > 0
+    },
+    hasStructureStats() {
+      return this.hasExpenseStats || this.hasIncomeStats
+    },
+    activeStructureStats() {
+      if (this.structureType === 'INCOME') return this.incomeStats
+      return this.expenseStats
+    },
+    activeStructureTotal() {
+      return this.structureType === 'INCOME' ? this.report.income : this.report.expense
+    },
+    defaultStructureColor() {
+      return this.structureType === 'INCOME' ? '#1f8f72' : '#d94a62'
+    },
     periodTitle() {
       const current = this.periodOptions.find(item => item.value === this.periodType)
       return current ? current.label : '本月'
+    },
+    periodIndex() {
+      const index = this.periodOptions.findIndex(item => item.value === this.periodType)
+      return index < 0 ? 1 : index
     },
     periodLabel() {
       const date = this.parseAnchorDate()
@@ -161,11 +213,40 @@ export default {
       if (this.periodType === 'year') return `${date.getFullYear()} 年`
       return this.formatMonthText(date)
     },
-    budgetSummary() {
-      if (!this.budgets.length) return '本月未设置'
+    budgetTotals() {
       const used = this.budgets.reduce((sum, item) => sum + Number(item.usedAmount || 0), 0)
       const total = this.budgets.reduce((sum, item) => sum + Number(item.amount || 0), 0)
-      return `${formatMoney(used)} / ${formatMoney(total)}`
+      return {
+        used,
+        total,
+        remaining: total - used,
+        rate: total > 0 ? used / total : 0
+      }
+    },
+    budgetStatusLevel() {
+      if (!this.budgets.length || this.budgetTotals.total <= 0) return 'empty'
+      if (this.budgetTotals.remaining < 0) return 'danger'
+      if (this.budgets.some(item => item.warning) || this.budgetTotals.rate >= 0.8) return 'warning'
+      return 'normal'
+    },
+    budgetStatusText() {
+      if (!this.budgets.length || this.budgetTotals.total <= 0) return '本月未设置预算'
+      if (this.budgetStatusLevel === 'danger') return '已超出预算'
+      if (this.budgetStatusLevel === 'warning') return '接近预算上限'
+      return '预算使用正常'
+    },
+    budgetUsageText() {
+      if (!this.budgets.length || this.budgetTotals.total <= 0) return '去设置本月支出上限'
+      return `已用 ${formatMoney(this.budgetTotals.used)} / ${formatMoney(this.budgetTotals.total)}`
+    },
+    budgetBalanceText() {
+      if (!this.budgets.length || this.budgetTotals.total <= 0) return ''
+      const amount = Math.abs(this.budgetTotals.remaining)
+      return this.budgetTotals.remaining < 0 ? `超支 ${formatMoney(amount)}` : `剩余 ${formatMoney(amount)}`
+    },
+    budgetProgressPercent() {
+      if (!this.budgets.length || this.budgetTotals.total <= 0) return '0%'
+      return `${Math.min(100, Math.round(this.budgetTotals.rate * 100))}%`
     }
   },
   onLoad() {
@@ -190,7 +271,7 @@ export default {
           store.fetchRecords({
             limit: 200,
             type: this.filterType,
-            categoryId: this.filterCategoryId,
+            categoryId: this.isCategoryDisabled ? null : this.filterCategoryId,
             startDate,
             endDate
           })
@@ -199,6 +280,11 @@ export default {
         this.budgets = Array.isArray(store.budgets) ? [...store.budgets] : []
         this.records = Array.isArray(store.records) ? [...store.records] : []
         this.report = this.buildReport(this.records)
+        if (this.structureType === 'EXPENSE' && !this.hasExpenseStats && this.hasIncomeStats) {
+          this.structureType = 'INCOME'
+        } else if (this.structureType === 'INCOME' && !this.hasIncomeStats && this.hasExpenseStats) {
+          this.structureType = 'EXPENSE'
+        }
       } finally {
         this.isLoading = false
       }
@@ -210,8 +296,19 @@ export default {
       const expense = records
         .filter(item => item.transactionType === 'EXPENSE')
         .reduce((sum, item) => sum + Number(item.baseAmount || item.amount || 0), 0)
-      const expenseRecords = records.filter(item => item.transactionType === 'EXPENSE')
-      const grouped = expenseRecords.reduce((map, item) => {
+      const categoryStats = this.buildCategoryStats(records, 'EXPENSE', expense)
+      const incomeCategoryStats = this.buildCategoryStats(records, 'INCOME', income)
+      return {
+        ...fallback,
+        income,
+        expense,
+        net: income - expense,
+        categoryStats,
+        incomeCategoryStats
+      }
+    },
+    buildCategoryStats(records, type, total) {
+      const grouped = records.filter(item => item.transactionType === type).reduce((map, item) => {
         const key = item.categoryId || 'none'
         const current = map[key] || {
           categoryName: item.categoryName || '未分类',
@@ -222,19 +319,12 @@ export default {
         map[key] = current
         return map
       }, {})
-      const categoryStats = Object.values(grouped)
+      return Object.values(grouped)
         .map(item => ({
           ...item,
-          percent: expense > 0 ? item.amount / expense : 0
+          percent: total > 0 ? item.amount / total : 0
         }))
         .sort((a, b) => b.amount - a.amount)
-      return {
-        ...fallback,
-        income,
-        expense,
-        net: income - expense,
-        categoryStats
-      }
     },
     getCategoryColor(categoryId) {
       const category = this.categories.find(item => item.id === categoryId)
@@ -244,6 +334,11 @@ export default {
       this.periodType = type
       this.filterCategoryId = null
       this.refreshData()
+    },
+    selectPeriodMode(event) {
+      const index = Number(event.detail.value)
+      const option = this.periodOptions[index] || this.periodOptions[1]
+      this.setPeriod(option.value)
     },
     changePeriod(delta) {
       const date = this.parseAnchorDate()
@@ -260,7 +355,6 @@ export default {
     },
     setType(type) {
       this.filterType = type
-      this.filterCategoryId = null
       this.refreshData()
     },
     setCategory(id) {
@@ -268,6 +362,7 @@ export default {
       this.refreshData()
     },
     selectCategory(event) {
+      if (this.isCategoryDisabled) return
       const index = Number(event.detail.value)
       const selected = this.categoryOptions[index] || this.categoryOptions[0]
       this.setCategory(selected.id || null)
@@ -315,6 +410,19 @@ export default {
     formatPercent(value) {
       return `${Math.min(100, Math.round(Number(value || 0) * 100))}%`
     },
+    buildPieStyle(items) {
+      if (!items.length) return '#edf2f5'
+      let start = 0
+      const segments = items.map((item, index) => {
+        const percent = Math.max(0, Number(item.percent || 0) * 100)
+        const end = index === items.length - 1 ? 100 : Math.min(100, start + percent)
+        const color = item.colorHex || (index % 2 === 0 ? '#2EBD85' : '#5B8FF9')
+        const segment = `${color} ${start}% ${end}%`
+        start = end
+        return segment
+      })
+      return `conic-gradient(${segments.join(', ')})`
+    },
     getTypeName(type) {
       const map = { INCOME: '收入', EXPENSE: '支出', TRANSFER: '转账' }
       return map[type] || type
@@ -359,8 +467,8 @@ export default {
     },
     confirmDelete(item) {
       uni.showModal({
-        title: '删除流水',
-        content: '删除后会自动撤销这笔流水对账户余额的影响。',
+        title: '删除记录',
+        content: '删除后会自动撤销这笔记录对账户余额的影响。',
         success: async (result) => {
           if (!result.confirm) return
           const store = useTransactionStore()
@@ -391,21 +499,20 @@ export default {
   margin-bottom: 18rpx;
 }
 
-.period-panel {
-  padding: 10rpx;
-  margin-bottom: 16rpx;
-  border-radius: 20rpx;
-  background: #ffffff;
-  box-shadow: 0 8rpx 22rpx rgba(26, 42, 58, 0.045);
+.ledger-toolbar {
+  margin: 0 4rpx 14rpx;
 }
 
 .hero-top,
 .hero-stats,
 .section-header,
 .record-item,
-.stat-line-head,
-.tool-strip,
-.filter-line {
+.budget-summary-head,
+.budget-summary-foot,
+.date-nav,
+.filter-row,
+.legend-item,
+.legend-left {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -477,7 +584,6 @@ export default {
   color: #d94a62;
 }
 
-.filter-card,
 .panel-card {
   background: #fff;
   border-radius: 18rpx;
@@ -493,173 +599,225 @@ export default {
   text-align: center;
 }
 
-.tool-strip {
+.budget-summary-card {
+  padding: 22rpx 24rpx;
   margin-bottom: 18rpx;
-  gap: 16rpx;
-}
-
-.tool-item {
-  flex: 1;
-  min-width: 0;
-  padding: 20rpx 22rpx;
   border-radius: 18rpx;
   background: #ffffff;
   box-shadow: 0 8rpx 22rpx rgba(26, 42, 58, 0.045);
+  border: 1rpx solid #edf1f4;
 }
 
-.tool-label,
-.tool-value {
+.budget-summary-card.warning {
+  border-color: #ffe0a8;
+  background: #fffdf8;
+}
+
+.budget-summary-card.danger {
+  border-color: #ffd4dc;
+  background: #fff9fa;
+}
+
+.budget-title,
+.budget-subtitle,
+.budget-action {
   display: block;
 }
 
-.tool-label {
+.budget-title {
   color: #17202a;
   font-size: 26rpx;
   line-height: 34rpx;
   font-weight: 800;
 }
 
-.tool-value {
+.budget-subtitle {
   margin-top: 6rpx;
   color: #7b8798;
   font-size: 23rpx;
   line-height: 32rpx;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.filter-card,
+.budget-summary-card.warning .budget-subtitle {
+  color: #b7791f;
+}
+
+.budget-summary-card.danger .budget-subtitle {
+  color: #d94a62;
+}
+
+.budget-action {
+  width: 42rpx;
+  height: 42rpx;
+  line-height: 38rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: #eef5f2;
+  color: #226f63;
+  font-size: 34rpx;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.budget-progress-track {
+  height: 12rpx;
+  margin: 18rpx 0 12rpx;
+  border-radius: 999rpx;
+  background: #edf2f5;
+  overflow: hidden;
+}
+
+.budget-progress-fill {
+  height: 100%;
+  border-radius: 999rpx;
+  background: #2ebd85;
+}
+
+.budget-summary-card.warning .budget-progress-fill {
+  background: #f5a623;
+}
+
+.budget-summary-card.danger .budget-progress-fill {
+  background: #d94a62;
+}
+
+.budget-summary-foot {
+  color: #7b8798;
+  font-size: 23rpx;
+  line-height: 32rpx;
+}
+
+.budget-summary-card.danger .budget-summary-foot text:last-child {
+  color: #d94a62;
+  font-weight: 800;
+}
+
 .panel-card {
   padding: 24rpx;
   margin-bottom: 18rpx;
 }
 
-.period-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4rpx;
-  padding: 4rpx;
-  border-radius: 16rpx;
-  background: #f3f6f8;
+.date-nav {
+  height: 54rpx;
+  padding: 0;
 }
 
-.period-tab {
-  height: 58rpx;
-  border-radius: 13rpx;
-  color: #7b8798;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 25rpx;
-  font-weight: 800;
+.date-title {
+  min-width: 260rpx;
+  text-align: center;
 }
 
-.period-tab.active {
-  background: #17202a;
-  color: #ffffff;
-  box-shadow: 0 8rpx 18rpx rgba(23, 32, 42, 0.12);
-}
-
-.period-nav {
-  height: 72rpx;
-  padding: 0 8rpx;
-  margin-top: 8rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.period-label {
+.date-label {
+  display: inline;
   color: #17202a;
   font-size: 30rpx;
-  line-height: 40rpx;
+  line-height: 38rpx;
   font-weight: 850;
+  margin-right: 12rpx;
 }
 
-.period-nav-btn {
-  width: 54rpx;
-  height: 54rpx;
-  border-radius: 50%;
-  background: #f2f6f4;
-  color: #226f63;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 42rpx;
-  line-height: 50rpx;
-}
-
-.segmented {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4rpx;
-  padding: 4rpx;
-  border-radius: 14rpx;
-  background: #f4f7f8;
-  margin-bottom: 14rpx;
-}
-
-.segment {
-  height: 58rpx;
-  border-radius: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #64748b;
-  font-size: 26rpx;
+.period-mode {
+  color: #7b8798;
+  font-size: 22rpx;
+  line-height: 30rpx;
   font-weight: 750;
 }
 
-.segment.active {
-  background: #17202a;
-  color: #fff;
-  box-shadow: 0 8rpx 18rpx rgba(23, 32, 42, 0.12);
-}
-
-.filter-line {
-  height: 72rpx;
-  padding: 0 18rpx 0 22rpx;
-  border-radius: 14rpx;
-  background: #fafbfc;
-}
-
-.filter-label,
-.filter-value {
-  display: block;
-}
-
-.filter-label {
-  color: #7b8798;
-  font-size: 25rpx;
-  line-height: 34rpx;
-}
-
-.filter-value {
-  flex: 1;
-  min-width: 0;
-  text-align: right;
-  color: #17202a;
-  font-size: 28rpx;
-  line-height: 38rpx;
-  font-weight: 800;
-  padding: 0 14rpx;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.filter-arrow {
+.date-nav-btn {
+  margin: 0;
   width: 42rpx;
   height: 42rpx;
+  line-height: 42rpx;
+  padding: 0;
   border-radius: 50%;
-  background: #eef5f2;
+  background: #ffffff;
   color: #226f63;
+  font-size: 32rpx;
+  font-weight: 500;
+  box-shadow: 0 6rpx 16rpx rgba(26, 42, 58, 0.045);
+}
+
+.filter-row {
+  align-items: center;
+  margin-top: 8rpx;
+}
+
+.type-scroll {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.type-chip-row {
+  display: flex;
+  gap: 28rpx;
+  width: max-content;
+  padding: 0 2rpx;
+}
+
+.type-chip {
+  position: relative;
+  height: 44rpx;
+  line-height: 44rpx;
+  padding: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 25rpx;
+  font-weight: 800;
+}
+
+.type-chip.active {
+  background: transparent;
+  color: #17202a;
+  box-shadow: none;
+}
+
+.type-chip.active::after {
+  content: '';
+  position: absolute;
+  left: 8rpx;
+  right: 8rpx;
+  bottom: 0;
+  height: 5rpx;
+  border-radius: 999rpx;
+  background: #2ebd85;
+}
+
+.category-pill {
+  height: 44rpx;
+  max-width: 184rpx;
+  padding: 0 2rpx 0 16rpx;
+  border-left: 1rpx solid #dbe3ea;
+  background: transparent;
+  color: #64748b;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 40rpx;
-  line-height: 44rpx;
+  gap: 8rpx;
+  font-size: 25rpx;
+  font-weight: 800;
+}
+
+.category-pill.disabled {
+  color: #a8b2bd;
+  border-left-color: #e5e9ee;
+}
+
+.category-pill text:first-child {
+  min-width: 0;
+  max-width: 140rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-arrow {
+  color: #226f63;
+  font-size: 28rpx;
+  line-height: 28rpx;
+}
+
+.category-pill.disabled .category-arrow {
+  color: #c2cad3;
 }
 
 .section-header {
@@ -673,27 +831,118 @@ export default {
   font-weight: 850;
 }
 
-.category-stat {
-  margin-top: 18rpx;
+.structure-card {
+  margin-bottom: 18rpx;
+  padding-bottom: 22rpx;
 }
 
-.stat-line-head {
-  color: #334155;
-  font-size: 26rpx;
-  font-weight: 700;
-  margin-bottom: 10rpx;
+.pie-layout {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
 }
 
-.progress-track {
-  height: 10rpx;
-  border-radius: 999rpx;
-  background: #edf2f5;
+.pie-ring {
+  width: 168rpx;
+  height: 168rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pie-center {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1rpx #edf1f4;
+}
+
+.pie-label {
+  color: #7b8798;
+  font-size: 20rpx;
+  line-height: 26rpx;
+}
+
+.pie-value {
+  max-width: 86rpx;
+  color: #17202a;
+  font-size: 19rpx;
+  line-height: 26rpx;
+  font-weight: 850;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.progress-fill {
-  height: 100%;
+.pie-legend {
+  flex: 1;
+  min-width: 0;
+}
+
+.legend-item {
+  padding: 6rpx 0;
+}
+
+.legend-left {
+  justify-content: flex-start;
+  min-width: 0;
+  gap: 10rpx;
+}
+
+.legend-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-name {
+  color: #334155;
+  font-size: 24rpx;
+  line-height: 32rpx;
+  font-weight: 750;
+  max-width: 170rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legend-percent {
+  color: #7b8798;
+  font-size: 23rpx;
+  line-height: 32rpx;
+  flex-shrink: 0;
+}
+
+.structure-switch {
+  display: flex;
+  gap: 6rpx;
+  padding: 4rpx;
   border-radius: 999rpx;
+  background: #f3f6f8;
+}
+
+.structure-switch-item {
+  min-width: 70rpx;
+  height: 42rpx;
+  line-height: 42rpx;
+  border-radius: 999rpx;
+  text-align: center;
+  color: #7b8798;
+  font-size: 23rpx;
+  font-weight: 800;
+}
+
+.structure-switch-item.active {
+  background: #17202a;
+  color: #ffffff;
 }
 
 .record-item {

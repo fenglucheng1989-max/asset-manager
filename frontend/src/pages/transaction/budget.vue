@@ -4,7 +4,7 @@
       <text class="month-switch" @click="changeMonth(-1)">‹</text>
       <view>
         <text class="month-title">{{ currentMonth }}</text>
-        <text class="month-sub">预算只统计支出流水</text>
+        <text class="month-sub">预算只统计支出记录</text>
       </view>
       <text class="month-switch" @click="changeMonth(1)">›</text>
     </view>

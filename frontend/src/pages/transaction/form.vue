@@ -37,13 +37,32 @@
         <text class="form-label">分类</text>
         <picker :range="categoryOptions" range-key="name" :value="categoryIndex" @change="selectCategory">
           <view class="form-picker">
-            <text>{{ categoryOptions[categoryIndex] ? categoryOptions[categoryIndex].name : '去添加分类' }}</text>
+            <text>{{ categoryOptions[categoryIndex] ? categoryOptions[categoryIndex].name : '请选择分类' }}</text>
             <text class="picker-arrow">›</text>
           </view>
         </picker>
       </view>
-      <view class="category-empty" v-if="form.transactionType !== 'TRANSFER' && categoryOptions.length === 0" @click="goCategory">
-        <text>当前没有可用分类，去新增一个</text>
+
+      <view class="inline-category" v-if="form.transactionType !== 'TRANSFER'">
+        <view class="inline-category-head" @click="toggleCategoryCreator">
+          <text>{{ showCategoryCreator || categoryOptions.length === 0 ? '新增分类' : '没有合适分类？' }}</text>
+          <text class="inline-category-action">{{ showCategoryCreator || categoryOptions.length === 0 ? '收起' : '自定义' }}</text>
+        </view>
+        <view class="inline-category-form" v-if="showCategoryCreator || categoryOptions.length === 0">
+          <input class="category-input" v-model="newCategoryName" maxlength="30" placeholder="例如：餐饮、工资" />
+          <view class="category-color-row">
+            <view
+              v-for="color in categoryColors"
+              :key="color"
+              :class="['category-color', { active: newCategoryColor === color }]"
+              :style="{ backgroundColor: color }"
+              @click="newCategoryColor = color"
+            ></view>
+          </view>
+          <button class="category-save-btn" :disabled="isCategorySaving" @click="createInlineCategory">
+            {{ isCategorySaving ? '添加中' : '添加并选中' }}
+          </button>
+        </view>
       </view>
 
       <view class="form-item">
@@ -63,7 +82,7 @@
     </view>
 
     <button class="save-btn" :disabled="isSaving" @click="handleSave">
-      {{ isSaving ? '保存中' : (recordId ? '保存修改' : '保存流水') }}
+      {{ isSaving ? '保存中' : (recordId ? '保存修改' : '保存记录') }}
     </button>
   </view>
 </template>
@@ -101,7 +120,12 @@ export default {
       accountIndex: 0,
       targetAccountIndex: 0,
       categoryIndex: 0,
-      isSaving: false
+      isSaving: false,
+      showCategoryCreator: false,
+      newCategoryName: '',
+      newCategoryColor: '#FF6B6B',
+      isCategorySaving: false,
+      categoryColors: ['#FF6B6B', '#2EBD85', '#5B8FF9', '#FFC107', '#00BCD4', '#8B5CF6', '#64748B']
     }
   },
   onLoad(options = {}) {
@@ -126,6 +150,7 @@ export default {
       if (this.categoryOptions.length > 0) {
         this.form.categoryId = this.categoryOptions[0].id
       }
+      this.syncCategoryCreatorColor()
       if (this.recordId) {
         await this.loadRecord()
       }
@@ -135,7 +160,7 @@ export default {
       await transactionStore.fetchRecords(200)
       const record = transactionStore.records.find(item => Number(item.id) === Number(this.recordId))
       if (!record) {
-        uni.showToast({ title: '流水不存在', icon: 'none' })
+        uni.showToast({ title: '记录不存在', icon: 'none' })
         setTimeout(() => uni.navigateBack(), 600)
         return
       }
@@ -155,6 +180,7 @@ export default {
       await transactionStore.fetchCategories(this.form.transactionType)
       this.categoryOptions = Array.isArray(transactionStore.categories) ? [...transactionStore.categories] : []
       this.categoryIndex = Math.max(0, this.categoryOptions.findIndex(item => item.id === record.categoryId))
+      this.syncCategoryCreatorColor()
     },
     async selectType(type) {
       this.form.transactionType = type
@@ -166,6 +192,7 @@ export default {
       if (this.categoryOptions.length > 0) {
         this.form.categoryId = this.categoryOptions[0].id
       }
+      this.syncCategoryCreatorColor()
     },
     selectAccount(event) {
       this.accountIndex = Number(event.detail.value)
@@ -179,8 +206,42 @@ export default {
       this.categoryIndex = Number(event.detail.value)
       this.form.categoryId = this.categoryOptions[this.categoryIndex].id
     },
-    goCategory() {
-      uni.navigateTo({ url: '/pages/transaction/category' })
+    toggleCategoryCreator() {
+      if (this.categoryOptions.length === 0) return
+      this.showCategoryCreator = !this.showCategoryCreator
+    },
+    syncCategoryCreatorColor() {
+      this.newCategoryColor = this.form.transactionType === 'INCOME' ? '#2EBD85' : '#FF6B6B'
+    },
+    async createInlineCategory() {
+      const name = this.newCategoryName.trim()
+      if (!name) {
+        uni.showToast({ title: '请输入分类名称', icon: 'none' })
+        return
+      }
+      this.isCategorySaving = true
+      try {
+        const transactionStore = useTransactionStore()
+        const res = await transactionStore.createCategory({
+          name,
+          type: this.form.transactionType,
+          colorHex: this.newCategoryColor,
+          sortOrder: 100
+        })
+        if (res && res.code === 200) {
+          this.categoryOptions = Array.isArray(transactionStore.categories) ? [...transactionStore.categories] : []
+          const createdIndex = this.categoryOptions.findIndex(item => item.name === name)
+          this.categoryIndex = createdIndex >= 0 ? createdIndex : Math.max(0, this.categoryOptions.length - 1)
+          if (this.categoryOptions[this.categoryIndex]) {
+            this.form.categoryId = this.categoryOptions[this.categoryIndex].id
+          }
+          this.newCategoryName = ''
+          this.showCategoryCreator = false
+          uni.showToast({ title: '分类已添加', icon: 'success' })
+        }
+      } finally {
+        this.isCategorySaving = false
+      }
     },
     applyAccount(account) {
       if (!account) return
@@ -283,13 +344,71 @@ export default {
   border-bottom: none;
 }
 
-.category-empty {
-  margin: 18rpx 0 8rpx;
-  padding: 22rpx;
+.inline-category {
+  margin: 18rpx 0 10rpx;
   border-radius: 16rpx;
   background: #f6f8fb;
-  color: #226f63;
+  overflow: hidden;
+}
+
+.inline-category-head {
+  min-height: 72rpx;
+  padding: 0 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  color: #17202a;
   font-size: 26rpx;
+  font-weight: 750;
+}
+
+.inline-category-action {
+  color: #226f63;
+  flex-shrink: 0;
+}
+
+.inline-category-form {
+  padding: 0 22rpx 22rpx;
+}
+
+.category-input {
+  height: 72rpx;
+  line-height: 72rpx;
+  padding: 0 18rpx;
+  border-radius: 14rpx;
+  background: #ffffff;
+  color: #334155;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.category-color-row {
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+  padding: 20rpx 0;
+}
+
+.category-color {
+  width: 46rpx;
+  height: 46rpx;
+  border-radius: 14rpx;
+  border: 4rpx solid transparent;
+  box-sizing: border-box;
+}
+
+.category-color.active {
+  border-color: #17202a;
+}
+
+.category-save-btn {
+  height: 74rpx;
+  line-height: 74rpx;
+  border-radius: 999rpx;
+  background: #17202a;
+  color: #ffffff;
+  font-size: 28rpx;
   font-weight: 750;
 }
 
