@@ -4,6 +4,8 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: asset-postgres
+    profiles:
+      - postgres
     environment:
       POSTGRES_DB: asset_manager
       POSTGRES_USER: asset_user
@@ -28,10 +30,9 @@ services:
     build: ../backend
     container_name: asset-backend
     depends_on:
-      - postgres
       - redis
     environment:
-      SPRING_PROFILES_ACTIVE: prod
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: asset_manager
@@ -41,6 +42,8 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - h2data:/app/data
     ports:
       - "8080:8080"
     restart: unless-stopped
@@ -59,4 +62,5 @@ services:
 
 volumes:
   pgdata:
+  h2data:
   redisdata:

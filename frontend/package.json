@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev:h5": "uni -p h5",
-    "build:h5": "uni build -p h5",
+    "dev:h5": "chcp 65001 >NUL && uni -p h5 --host 0.0.0.0",
+    "build:h5": "chcp 65001 >NUL && uni build -p h5",
     "preview:h5": "vite preview --host 0.0.0.0 --port 4173 --outDir dist/build/h5",
     "build:app": "uni build -p app",
     "dev:mp-weixin": "uni -p mp-weixin",

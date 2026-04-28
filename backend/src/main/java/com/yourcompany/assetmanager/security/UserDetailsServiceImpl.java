@@ -24,7 +24,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 new LambdaQueryWrapper<AppUser>().eq(AppUser::getUsername, username));
 
         if (appUser == null) {
-            throw new UsernameNotFoundException("User not found: " + username);
+            throw new UsernameNotFoundException("用户不存在：" + username);
         }
 
         String role = appUser.getRole() == null || appUser.getRole().isBlank() ? "USER" : appUser.getRole();

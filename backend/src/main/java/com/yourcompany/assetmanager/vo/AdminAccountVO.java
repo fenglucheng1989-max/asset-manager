@@ -20,9 +20,11 @@ public class AdminAccountVO {
     private String name;
     private String accountType;
     private String currency;
+    private BigDecimal exchangeRateToCny;
     private BigDecimal currentBalance;
     private Boolean isLiability;
     private Boolean includeInTotal;
+    private Boolean archived;
     private String colorHex;
     private Integer sortOrder;
     private String remark;

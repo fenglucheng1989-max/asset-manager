@@ -25,7 +25,7 @@ public class AuthServiceImpl implements AuthService {
         AppUser existing = appUserMapper.selectOne(
                 new LambdaQueryWrapper<AppUser>().eq(AppUser::getUsername, dto.getUsername()));
         if (existing != null) {
-            throw new BusinessException("Username already exists");
+            throw new BusinessException("用户名已存在");
         }
 
         AppUser user = AppUser.builder()
@@ -46,7 +46,7 @@ public class AuthServiceImpl implements AuthService {
                 new LambdaQueryWrapper<AppUser>().eq(AppUser::getUsername, dto.getUsername()));
 
         if (user == null || !passwordEncoder.matches(dto.getPassword(), user.getPasswordHash())) {
-            throw new BusinessException(401, "Invalid username or password");
+            throw new BusinessException(401, "用户名或密码错误");
         }
 
         return jwtUtils.generateToken(user.getUsername(), user.getId());

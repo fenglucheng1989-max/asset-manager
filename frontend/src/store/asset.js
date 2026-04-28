@@ -10,7 +10,8 @@ export const useAssetStore = defineStore('asset', {
       accountCount: 0,
       lastUpdateTime: null
     },
-    accounts: []
+    accounts: [],
+    snapshots: []
   }),
   actions: {
     async fetchOverview() {
@@ -24,6 +25,26 @@ export const useAssetStore = defineStore('asset', {
       if (res.code === 200) {
         this.accounts = res.data
       }
+    },
+    async fetchAccount(id) {
+      return request({ url: `/api/v1/asset/accounts/${id}`, method: 'GET' })
+    },
+    async fetchAccountHistory(id, limit = 50) {
+      return request({ url: `/api/v1/asset/accounts/${id}/history?limit=${limit}`, method: 'GET' })
+    },
+    async fetchSnapshots(limit = 30) {
+      const res = await request({ url: `/api/v1/asset/snapshots?limit=${limit}`, method: 'GET' })
+      if (res.code === 200) {
+        this.snapshots = Array.isArray(res.data) ? res.data : []
+      }
+      return res
+    },
+    async createSnapshot() {
+      const res = await request({ url: '/api/v1/asset/snapshots', method: 'POST' })
+      if (res.code === 200) {
+        await this.fetchSnapshots()
+      }
+      return res
     },
     async createAccount(data) {
       const res = await request({ url: '/api/v1/asset/accounts', method: 'POST', data })
@@ -43,6 +64,14 @@ export const useAssetStore = defineStore('asset', {
     },
     async deleteAccount(id) {
       const res = await request({ url: `/api/v1/asset/accounts/${id}`, method: 'DELETE' })
+      if (res.code === 200) {
+        await this.fetchAccounts()
+        await this.fetchOverview()
+      }
+      return res
+    },
+    async archiveAccount(id, archived = true) {
+      const res = await request({ url: `/api/v1/asset/accounts/${id}/archive`, method: 'PUT', data: { archived } })
       if (res.code === 200) {
         await this.fetchAccounts()
         await this.fetchOverview()

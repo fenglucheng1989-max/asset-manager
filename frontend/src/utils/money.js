@@ -5,6 +5,26 @@ export function formatMoney(value, symbol = '¥') {
   return symbol + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
+export function getCurrencySymbol(currency = 'CNY') {
+  const symbolMap = {
+    CNY: '¥',
+    USD: '$',
+    HKD: 'HK$',
+    EUR: '€',
+    JPY: '¥',
+    GBP: '£'
+  }
+  return symbolMap[String(currency || 'CNY').toUpperCase()] || `${currency} `
+}
+
+export function toBaseAmount(account) {
+  const balance = Number(account && account.currentBalance ? account.currentBalance : 0)
+  const rate = Number(account && account.exchangeRateToCny ? account.exchangeRateToCny : 1)
+  if (Number.isNaN(balance)) return 0
+  if (Number.isNaN(rate) || rate <= 0) return balance
+  return balance * rate
+}
+
 export function getAccountTypeName(type) {
   const typeMap = {
     CASH: '现金',

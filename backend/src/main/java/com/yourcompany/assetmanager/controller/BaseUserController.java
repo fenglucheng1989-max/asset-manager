@@ -18,13 +18,13 @@ public abstract class BaseUserController {
 
     protected AppUser currentUser(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
-            throw new BusinessException(401, "Unauthorized");
+            throw new BusinessException(401, "请先登录");
         }
 
         AppUser user = appUserMapper.selectOne(new LambdaQueryWrapper<AppUser>()
                 .eq(AppUser::getUsername, authentication.getName()));
         if (user == null) {
-            throw new BusinessException(401, "Unauthorized");
+            throw new BusinessException(401, "请先登录");
         }
         return user;
     }
@@ -32,7 +32,7 @@ public abstract class BaseUserController {
     protected void requireAdmin(Authentication authentication) {
         AppUser user = currentUser(authentication);
         if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
-            throw new BusinessException(403, "Admin role required");
+            throw new BusinessException(403, "需要管理员权限");
         }
     }
 }

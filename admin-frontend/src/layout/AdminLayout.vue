@@ -18,6 +18,9 @@
         <el-menu-item index="/accounts">
           <span>账户管理</span>
         </el-menu-item>
+        <el-menu-item index="/transactions">
+          <span>流水管理</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 

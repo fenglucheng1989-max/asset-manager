@@ -5,14 +5,18 @@ import com.yourcompany.assetmanager.dto.SortDTO;
 import com.yourcompany.assetmanager.entity.AssetAccount;
 import com.yourcompany.assetmanager.service.AssetAccountService;
 import com.yourcompany.assetmanager.service.AssetOverviewService;
+import com.yourcompany.assetmanager.service.AssetSnapshotService;
 import com.yourcompany.assetmanager.vo.ApiResponse;
+import com.yourcompany.assetmanager.vo.AssetAccountBalanceHistoryVO;
 import com.yourcompany.assetmanager.vo.AssetOverviewVO;
+import com.yourcompany.assetmanager.vo.AssetSnapshotVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/asset")
@@ -21,6 +25,7 @@ public class AssetController {
 
     private final AssetOverviewService assetOverviewService;
     private final AssetAccountService assetAccountService;
+    private final AssetSnapshotService assetSnapshotService;
 
     @GetMapping("/overview")
     public ApiResponse<AssetOverviewVO> getOverview(Authentication authentication) {
@@ -32,6 +37,12 @@ public class AssetController {
     public ApiResponse<List<AssetAccount>> getAccounts(Authentication authentication) {
         Long userId = getCurrentUserId(authentication);
         return ApiResponse.success(assetAccountService.getAccounts(userId));
+    }
+
+    @GetMapping("/accounts/{id}")
+    public ApiResponse<AssetAccount> getAccount(Authentication authentication, @PathVariable Long id) {
+        Long userId = getCurrentUserId(authentication);
+        return ApiResponse.success(assetAccountService.getAccount(userId, id));
     }
 
     @PostMapping("/accounts")
@@ -63,6 +74,36 @@ public class AssetController {
         Long userId = getCurrentUserId(authentication);
         assetAccountService.updateSort(userId, sortDTO.getSortedIds());
         return ApiResponse.success(null);
+    }
+
+    @PutMapping("/accounts/{id}/archive")
+    public ApiResponse<AssetAccount> archiveAccount(Authentication authentication,
+                                                    @PathVariable Long id,
+                                                    @RequestBody(required = false) Map<String, Boolean> body) {
+        Long userId = getCurrentUserId(authentication);
+        boolean archived = body == null || body.get("archived") == null || Boolean.TRUE.equals(body.get("archived"));
+        return ApiResponse.success(assetAccountService.archiveAccount(userId, id, archived));
+    }
+
+    @GetMapping("/accounts/{id}/history")
+    public ApiResponse<List<AssetAccountBalanceHistoryVO>> getAccountHistory(Authentication authentication,
+                                                                            @PathVariable Long id,
+                                                                            @RequestParam(required = false) Integer limit) {
+        Long userId = getCurrentUserId(authentication);
+        return ApiResponse.success(assetAccountService.getBalanceHistory(userId, id, limit));
+    }
+
+    @PostMapping("/snapshots")
+    public ApiResponse<AssetSnapshotVO> createSnapshot(Authentication authentication) {
+        Long userId = getCurrentUserId(authentication);
+        return ApiResponse.success(assetSnapshotService.createTodaySnapshot(userId));
+    }
+
+    @GetMapping("/snapshots")
+    public ApiResponse<List<AssetSnapshotVO>> listSnapshots(Authentication authentication,
+                                                            @RequestParam(required = false) Integer limit) {
+        Long userId = getCurrentUserId(authentication);
+        return ApiResponse.success(assetSnapshotService.listSnapshots(userId, limit));
     }
 
     private Long getCurrentUserId(Authentication authentication) {

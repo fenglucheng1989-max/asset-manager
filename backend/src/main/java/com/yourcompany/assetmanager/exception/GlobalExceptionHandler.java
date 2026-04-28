@@ -17,7 +17,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException e) {
-        return buildResponse(HttpStatus.UNAUTHORIZED.value(), "Invalid username or password");
+        return buildResponse(HttpStatus.UNAUTHORIZED.value(), "用户名或密码错误");
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
@@ -30,13 +30,13 @@ public class GlobalExceptionHandler {
         String message = e.getBindingResult().getFieldErrors().stream()
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())
                 .reduce((a, b) -> a + "; " + b)
-                .orElse("Validation failed");
+                .orElse("参数校验失败");
         return buildResponse(HttpStatus.BAD_REQUEST.value(), message);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleUnreadableMessage(HttpMessageNotReadableException e) {
-        return buildResponse(HttpStatus.BAD_REQUEST.value(), "Malformed request body");
+        return buildResponse(HttpStatus.BAD_REQUEST.value(), "请求内容格式不正确");
     }
 
     @ExceptionHandler(BusinessException.class)
@@ -46,7 +46,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception e) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error");
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "服务器内部错误");
     }
 
     private ResponseEntity<Map<String, Object>> buildResponse(int code, String message) {

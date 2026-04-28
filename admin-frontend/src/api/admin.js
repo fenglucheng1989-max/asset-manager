@@ -27,3 +27,11 @@ export function updateAccount(id, data) {
 export function deleteAccount(id) {
   return request.delete(`/admin/accounts/${id}`)
 }
+
+export function getTransactions(params) {
+  return request.get('/admin/transactions', { params })
+}
+
+export function getTransactionReport(params) {
+  return request.get('/admin/transactions/report', { params })
+}

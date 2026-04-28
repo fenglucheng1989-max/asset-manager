@@ -4,9 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.yourcompany.assetmanager.dto.AssetAccountDTO;
 import com.yourcompany.assetmanager.entity.AppUser;
 import com.yourcompany.assetmanager.entity.AssetAccount;
+import com.yourcompany.assetmanager.entity.TransactionCategory;
+import com.yourcompany.assetmanager.entity.TransactionRecord;
 import com.yourcompany.assetmanager.exception.BusinessException;
 import com.yourcompany.assetmanager.mapper.AppUserMapper;
 import com.yourcompany.assetmanager.mapper.AssetAccountMapper;
+import com.yourcompany.assetmanager.mapper.TransactionCategoryMapper;
+import com.yourcompany.assetmanager.mapper.TransactionRecordMapper;
 import com.yourcompany.assetmanager.service.AssetOverviewService;
 import com.yourcompany.assetmanager.utils.MoneyUtils;
 import com.yourcompany.assetmanager.vo.AdminAccountVO;
@@ -14,7 +18,10 @@ import com.yourcompany.assetmanager.vo.AdminDashboardVO;
 import com.yourcompany.assetmanager.vo.AdminUserVO;
 import com.yourcompany.assetmanager.vo.ApiResponse;
 import com.yourcompany.assetmanager.vo.AssetOverviewVO;
+import com.yourcompany.assetmanager.vo.TransactionRecordVO;
+import com.yourcompany.assetmanager.vo.TransactionReportVO;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,9 +33,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @RestController
@@ -37,14 +47,20 @@ public class AdminController extends BaseUserController {
 
     private final AppUserMapper appUserMapper;
     private final AssetAccountMapper assetAccountMapper;
+    private final TransactionRecordMapper transactionRecordMapper;
+    private final TransactionCategoryMapper transactionCategoryMapper;
     private final AssetOverviewService assetOverviewService;
 
     public AdminController(AppUserMapper appUserMapper,
                            AssetAccountMapper assetAccountMapper,
+                           TransactionRecordMapper transactionRecordMapper,
+                           TransactionCategoryMapper transactionCategoryMapper,
                            AssetOverviewService assetOverviewService) {
         super(appUserMapper);
         this.appUserMapper = appUserMapper;
         this.assetAccountMapper = assetAccountMapper;
+        this.transactionRecordMapper = transactionRecordMapper;
+        this.transactionCategoryMapper = transactionCategoryMapper;
         this.assetOverviewService = assetOverviewService;
     }
 
@@ -52,7 +68,9 @@ public class AdminController extends BaseUserController {
     public ApiResponse<AdminDashboardVO> dashboard(Authentication authentication) {
         requireAdmin(authentication);
         List<AssetAccount> includedAccounts = assetAccountMapper.selectList(
-                new LambdaQueryWrapper<AssetAccount>().eq(AssetAccount::getIncludeInTotal, true));
+                new LambdaQueryWrapper<AssetAccount>()
+                        .eq(AssetAccount::getIncludeInTotal, true)
+                        .eq(AssetAccount::getArchived, false));
 
         BigDecimal totalAsset = BigDecimal.ZERO;
         BigDecimal totalLiability = BigDecimal.ZERO;
@@ -61,10 +79,12 @@ public class AdminController extends BaseUserController {
         for (AssetAccount account : includedAccounts) {
             if (Boolean.TRUE.equals(account.getIsLiability())) {
                 liabilityAccountCount++;
-                totalLiability = MoneyUtils.add(totalLiability, account.getCurrentBalance());
+                totalLiability = MoneyUtils.add(totalLiability,
+                        MoneyUtils.toBaseCurrency(account.getCurrentBalance(), account.getExchangeRateToCny()));
             } else {
                 assetAccountCount++;
-                totalAsset = MoneyUtils.add(totalAsset, account.getCurrentBalance());
+                totalAsset = MoneyUtils.add(totalAsset,
+                        MoneyUtils.toBaseCurrency(account.getCurrentBalance(), account.getExchangeRateToCny()));
             }
         }
 
@@ -102,12 +122,12 @@ public class AdminController extends BaseUserController {
         requireAdmin(authentication);
         String role = body.getOrDefault("role", "USER").toUpperCase();
         if (!"USER".equals(role) && !"ADMIN".equals(role)) {
-            throw new BusinessException(400, "Unsupported role");
+            throw new BusinessException(400, "不支持的角色");
         }
 
         AppUser user = appUserMapper.selectById(id);
         if (user == null) {
-            throw new BusinessException(404, "User not found");
+            throw new BusinessException(404, "用户不存在");
         }
         user.setRole(role);
         appUserMapper.updateById(user);
@@ -148,15 +168,17 @@ public class AdminController extends BaseUserController {
         requireAdmin(authentication);
         AssetAccount account = assetAccountMapper.selectById(id);
         if (account == null) {
-            throw new BusinessException(404, "Account not found");
+            throw new BusinessException(404, "账户不存在");
         }
 
         account.setName(dto.getName());
         account.setAccountType(dto.getAccountType());
         account.setCurrency(dto.getCurrency());
+        account.setExchangeRateToCny(dto.getExchangeRateToCny());
         account.setCurrentBalance(dto.getCurrentBalance());
         account.setIsLiability(dto.getIsLiability());
         account.setIncludeInTotal(dto.getIncludeInTotal());
+        account.setArchived(Boolean.TRUE.equals(dto.getArchived()));
         account.setIcon(dto.getIcon());
         account.setColorHex(dto.getColorHex());
         account.setSortOrder(dto.getSortOrder());
@@ -173,11 +195,57 @@ public class AdminController extends BaseUserController {
         requireAdmin(authentication);
         AssetAccount account = assetAccountMapper.selectById(id);
         if (account == null) {
-            throw new BusinessException(404, "Account not found");
+            throw new BusinessException(404, "账户不存在");
         }
         assetAccountMapper.deleteById(id);
         assetOverviewService.evictOverviewCache(account.getUserId());
         return ApiResponse.success(null);
+    }
+
+    @GetMapping("/transactions")
+    public ApiResponse<List<TransactionRecordVO>> transactions(Authentication authentication,
+                                                              @RequestParam(required = false) Long userId,
+                                                              @RequestParam(required = false) String type,
+                                                              @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                                              @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+                                                              @RequestParam(required = false, defaultValue = "200") Integer limit) {
+        requireAdmin(authentication);
+        int safeLimit = Math.max(1, Math.min(500, limit));
+        LambdaQueryWrapper<TransactionRecord> wrapper = new LambdaQueryWrapper<TransactionRecord>()
+                .orderByDesc(TransactionRecord::getOccurredAt)
+                .orderByDesc(TransactionRecord::getId)
+                .last("LIMIT " + safeLimit);
+        if (userId != null) wrapper.eq(TransactionRecord::getUserId, userId);
+        if (type != null && !type.isBlank()) wrapper.eq(TransactionRecord::getTransactionType, type.toUpperCase());
+        if (startDate != null) wrapper.ge(TransactionRecord::getOccurredAt, startDate.atStartOfDay());
+        if (endDate != null) wrapper.lt(TransactionRecord::getOccurredAt, endDate.plusDays(1).atStartOfDay());
+        return ApiResponse.success(toTransactionVOs(transactionRecordMapper.selectList(wrapper)));
+    }
+
+    @GetMapping("/transactions/report")
+    public ApiResponse<TransactionReportVO> transactionReport(Authentication authentication,
+                                                             @RequestParam(required = false) String month) {
+        requireAdmin(authentication);
+        YearMonth ym = month == null || month.isBlank() ? YearMonth.now() : YearMonth.parse(month);
+        List<TransactionRecord> records = transactionRecordMapper.selectList(new LambdaQueryWrapper<TransactionRecord>()
+                .ge(TransactionRecord::getOccurredAt, ym.atDay(1).atStartOfDay())
+                .lt(TransactionRecord::getOccurredAt, ym.plusMonths(1).atDay(1).atStartOfDay())
+                .orderByAsc(TransactionRecord::getOccurredAt));
+        BigDecimal income = records.stream()
+                .filter(record -> "INCOME".equals(record.getTransactionType()))
+                .map(record -> MoneyUtils.toBaseCurrency(record.getAmount(), record.getExchangeRateToCny()))
+                .reduce(BigDecimal.ZERO, MoneyUtils::add);
+        BigDecimal expense = records.stream()
+                .filter(record -> "EXPENSE".equals(record.getTransactionType()))
+                .map(record -> MoneyUtils.toBaseCurrency(record.getAmount(), record.getExchangeRateToCny()))
+                .reduce(BigDecimal.ZERO, MoneyUtils::add);
+        return ApiResponse.success(TransactionReportVO.builder()
+                .income(income)
+                .expense(expense)
+                .net(MoneyUtils.subtract(income, expense))
+                .categoryStats(List.of())
+                .trend(List.of())
+                .build());
     }
 
     private AdminUserVO toAdminUser(AppUser user) {
@@ -203,14 +271,46 @@ public class AdminController extends BaseUserController {
                 .name(account.getName())
                 .accountType(account.getAccountType())
                 .currency(account.getCurrency())
+                .exchangeRateToCny(account.getExchangeRateToCny())
                 .currentBalance(account.getCurrentBalance())
                 .isLiability(account.getIsLiability())
                 .includeInTotal(account.getIncludeInTotal())
+                .archived(account.getArchived())
                 .colorHex(account.getColorHex())
                 .sortOrder(account.getSortOrder())
                 .remark(account.getRemark())
                 .createdAt(account.getCreatedAt())
                 .updatedAt(account.getUpdatedAt())
                 .build();
+    }
+
+    private List<TransactionRecordVO> toTransactionVOs(List<TransactionRecord> records) {
+        Map<Long, AssetAccount> accounts = assetAccountMapper.selectList(null).stream()
+                .collect(Collectors.toMap(AssetAccount::getId, Function.identity(), (a, b) -> a));
+        Map<Long, TransactionCategory> categories = transactionCategoryMapper.selectList(null).stream()
+                .collect(Collectors.toMap(TransactionCategory::getId, Function.identity(), (a, b) -> a));
+        return records.stream().map(record -> {
+            AssetAccount account = accounts.get(record.getAccountId());
+            AssetAccount targetAccount = accounts.get(record.getTargetAccountId());
+            TransactionCategory category = categories.get(record.getCategoryId());
+            return TransactionRecordVO.builder()
+                    .id(record.getId())
+                    .transactionType(record.getTransactionType())
+                    .accountId(record.getAccountId())
+                    .accountName(account == null ? null : account.getName())
+                    .targetAccountId(record.getTargetAccountId())
+                    .targetAccountName(targetAccount == null ? null : targetAccount.getName())
+                    .categoryId(record.getCategoryId())
+                    .categoryName(category == null ? null : category.getName())
+                    .amount(record.getAmount())
+                    .currency(record.getCurrency())
+                    .exchangeRateToCny(record.getExchangeRateToCny())
+                    .baseAmount(MoneyUtils.toBaseCurrency(record.getAmount(), record.getExchangeRateToCny()))
+                    .occurredAt(record.getOccurredAt())
+                    .tag(record.getTag())
+                    .remark(record.getRemark())
+                    .createdAt(record.getCreatedAt())
+                    .build();
+        }).toList();
     }
 }

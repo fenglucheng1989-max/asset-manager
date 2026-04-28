@@ -26,6 +26,13 @@ public class MoneyUtils {
         return a.multiply(b).setScale(SCALE, ROUNDING_MODE);
     }
 
+    public static BigDecimal toBaseCurrency(BigDecimal amount, BigDecimal exchangeRateToCny) {
+        BigDecimal safeRate = exchangeRateToCny == null || exchangeRateToCny.compareTo(BigDecimal.ZERO) <= 0
+                ? BigDecimal.ONE
+                : exchangeRateToCny;
+        return multiply(amount, safeRate);
+    }
+
     public static BigDecimal divide(BigDecimal a, BigDecimal b) {
         if (a == null) a = BigDecimal.ZERO;
         if (b == null || b.compareTo(BigDecimal.ZERO) == 0) {

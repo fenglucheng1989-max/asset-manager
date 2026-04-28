@@ -1,26 +1,28 @@
 <script>
 export default {
   onLaunch() {
-    console.log('App Launch')
+    console.log('应用启动')
   },
   onShow() {
-    console.log('App Show')
+    console.log('应用显示')
   },
   onHide() {
-    console.log('App Hide')
+    console.log('应用隐藏')
   }
 }
 </script>
 
 <style>
 page {
-  background-color: #f5f5f5;
+  background-color: #f3f6f8;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: #17202a;
 }
 
 /* #ifdef H5 */
 body {
-  background: #e9ecef;
+  margin: 0;
+  background: linear-gradient(180deg, #dde7ef 0%, #f6f8fb 42%, #edf1f5 100%);
 }
 
 #app {
@@ -28,8 +30,8 @@ body {
   max-width: 480px;
   min-height: 100vh;
   margin: 0 auto;
-  background: #f5f5f5;
-  box-shadow: 0 0 32px rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, #f7fafc 0%, #eef3f6 100%);
+  box-shadow: 0 0 42px rgba(15, 23, 42, 0.12);
 }
 
 uni-tabbar .uni-tabbar,
@@ -43,7 +45,7 @@ uni-tabbar .uni-tabbar__bd {
 
 @media (max-width: 480px) {
   body {
-    background: #f5f5f5;
+    background: #f3f6f8;
   }
 
   #app {
@@ -58,6 +60,7 @@ uni-tabbar .uni-tabbar__bd {
     max-width: none;
     transform: none;
   }
+
 }
 /* #endif */
 

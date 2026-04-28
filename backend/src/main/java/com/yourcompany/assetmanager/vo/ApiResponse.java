@@ -20,7 +20,7 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> success(T data) {
         return ApiResponse.<T>builder()
                 .code(200)
-                .message("success")
+                .message("操作成功")
                 .data(data)
                 .build();
     }

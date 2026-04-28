@@ -1,8 +1,4 @@
-let BASE_URL = ''
-
-// #ifdef APP-PLUS
-BASE_URL = 'http://192.168.101.12:8080'
-// #endif
+import { getApiBaseUrl } from '../config/api'
 
 export function request(options) {
   return new Promise((resolve, reject) => {
@@ -13,7 +9,7 @@ export function request(options) {
     }
 
     uni.request({
-      url: BASE_URL + options.url,
+      url: getApiBaseUrl() + options.url,
       method: options.method || 'GET',
       data: options.data || {},
       header,

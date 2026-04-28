@@ -5,6 +5,7 @@ import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Users from '../views/Users.vue'
 import Accounts from '../views/Accounts.vue'
+import Transactions from '../views/Transactions.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -17,7 +18,8 @@ const router = createRouter({
         { path: '', redirect: '/dashboard' },
         { path: 'dashboard', component: Dashboard },
         { path: 'users', component: Users },
-        { path: 'accounts', component: Accounts }
+        { path: 'accounts', component: Accounts },
+        { path: 'transactions', component: Transactions }
       ]
     }
   ]

@@ -31,11 +31,15 @@ public class AssetAccount {
 
     private String currency;
 
+    private BigDecimal exchangeRateToCny;
+
     private BigDecimal currentBalance;
 
     private Boolean isLiability;
 
     private Boolean includeInTotal;
+
+    private Boolean archived;
 
     private String icon;
 

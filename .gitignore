@@ -13,6 +13,7 @@ Thumbs.db
 backend/target/
 backend/*.jar
 backend/.gradle/
+backend/data/
 
 # 前端 uni-app
 frontend/node_modules/

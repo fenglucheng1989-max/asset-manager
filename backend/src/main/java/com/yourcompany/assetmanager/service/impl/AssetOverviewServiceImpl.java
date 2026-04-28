@@ -39,17 +39,21 @@ public class AssetOverviewServiceImpl implements AssetOverviewService {
         List<AssetAccount> accounts = assetAccountMapper.selectList(
                 new LambdaQueryWrapper<AssetAccount>()
                         .eq(AssetAccount::getUserId, userId)
-                        .eq(AssetAccount::getIncludeInTotal, true));
+                        .eq(AssetAccount::getIncludeInTotal, true)
+                        .eq(AssetAccount::getArchived, false));
 
         BigDecimal totalAsset = BigDecimal.ZERO;
         BigDecimal totalLiability = BigDecimal.ZERO;
         LocalDateTime lastUpdate = null;
 
         for (AssetAccount account : accounts) {
+            BigDecimal baseBalance = MoneyUtils.toBaseCurrency(
+                    account.getCurrentBalance(),
+                    account.getExchangeRateToCny());
             if (Boolean.TRUE.equals(account.getIsLiability())) {
-                totalLiability = MoneyUtils.add(totalLiability, account.getCurrentBalance());
+                totalLiability = MoneyUtils.add(totalLiability, baseBalance);
             } else {
-                totalAsset = MoneyUtils.add(totalAsset, account.getCurrentBalance());
+                totalAsset = MoneyUtils.add(totalAsset, baseBalance);
             }
             if (lastUpdate == null || (account.getUpdatedAt() != null && account.getUpdatedAt().isAfter(lastUpdate))) {
                 lastUpdate = account.getUpdatedAt();
@@ -59,7 +63,9 @@ public class AssetOverviewServiceImpl implements AssetOverviewService {
         BigDecimal netWorth = MoneyUtils.subtract(totalAsset, totalLiability);
 
         int totalAccountCount = Math.toIntExact(assetAccountMapper.selectCount(
-                new LambdaQueryWrapper<AssetAccount>().eq(AssetAccount::getUserId, userId)));
+                new LambdaQueryWrapper<AssetAccount>()
+                        .eq(AssetAccount::getUserId, userId)
+                        .eq(AssetAccount::getArchived, false)));
 
         AssetOverviewVO overview = AssetOverviewVO.builder()
                 .totalAsset(totalAsset)

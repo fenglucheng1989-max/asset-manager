@@ -8,6 +8,6 @@ import java.util.List;
 @Data
 public class SortDTO {
 
-    @NotEmpty(message = "Sorted IDs list cannot be empty")
+    @NotEmpty(message = "排序账户列表不能为空")
     private List<Long> sortedIds;
 }

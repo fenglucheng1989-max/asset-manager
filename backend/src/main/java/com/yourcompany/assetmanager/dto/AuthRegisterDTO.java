@@ -6,10 +6,10 @@ import lombok.Data;
 @Data
 public class AuthRegisterDTO {
 
-    @NotBlank(message = "Username is required")
+    @NotBlank(message = "用户名不能为空")
     private String username;
 
-    @NotBlank(message = "Password is required")
+    @NotBlank(message = "密码不能为空")
     private String password;
 
     private String email;

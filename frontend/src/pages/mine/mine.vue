@@ -1,31 +1,32 @@
 <template>
   <view class="container">
     <view v-if="isLoggedIn" class="profile-section">
-      <view class="avatar-area">
+      <view class="profile-header">
         <view class="avatar">
           <text class="avatar-text">{{ username.substring(0, 1).toUpperCase() }}</text>
         </view>
-        <text class="username">{{ username }}</text>
-        <text class="profile-subtitle">当前账号已登录，资产数据可同步使用</text>
-      </view>
-
-      <view class="summary-card">
-        <view class="summary-row">
-          <text class="summary-label">当前账号</text>
-          <text class="summary-value">{{ username }}</text>
-        </view>
-        <view class="summary-row">
-          <text class="summary-label">登录状态</text>
-          <text class="summary-value active">已登录</text>
+        <view class="profile-copy">
+          <text class="username">{{ username }}</text>
+          <text class="profile-subtitle">当前账号已登录，资产数据可同步使用</text>
         </view>
       </view>
 
-      <view class="menu-list">
-        <view class="menu-item" @click="handleLogout">
-          <text class="menu-text">退出登录</text>
-          <text class="menu-arrow">></text>
-        </view>
+      <view class="profile-meta">
+        <text class="meta-label">登录状态</text>
+        <text class="meta-value">已登录</text>
       </view>
+
+      <view class="profile-meta currency-meta">
+        <text class="meta-label">默认本位币</text>
+        <picker :range="currencyOptions" range-key="label" :value="currencyIndex" @change="handleCurrencyChange">
+          <view class="currency-picker">
+            <text>{{ currencyOptions[currencyIndex].label }}</text>
+            <text class="picker-arrow">></text>
+          </view>
+        </picker>
+      </view>
+
+      <button class="logout-btn" @click="handleLogout">退出登录</button>
     </view>
 
     <view v-else class="login-section">
@@ -70,7 +71,22 @@ export default {
         email: ''
       },
       isLoggedIn: false,
-      username: 'preview'
+      username: 'preview',
+      baseCurrency: 'CNY',
+      currencyOptions: [
+        { label: '人民币 CNY', value: 'CNY' },
+        { label: '美元 USD', value: 'USD' },
+        { label: '港币 HKD', value: 'HKD' },
+        { label: '欧元 EUR', value: 'EUR' },
+        { label: '日元 JPY', value: 'JPY' },
+        { label: '英镑 GBP', value: 'GBP' }
+      ]
+    }
+  },
+  computed: {
+    currencyIndex() {
+      const index = this.currencyOptions.findIndex(item => item.value === this.baseCurrency)
+      return index < 0 ? 0 : index
     }
   },
   onShow() {
@@ -80,18 +96,41 @@ export default {
     refreshUser() {
       const token = uni.getStorageSync('token') || ''
       const username = uni.getStorageSync('username') || 'preview'
+      const profile = uni.getStorageSync('userProfile') || null
 
       this.isLoggedIn = !!token
       this.username = username
+      this.baseCurrency = profile && profile.baseCurrency ? profile.baseCurrency : 'CNY'
 
       try {
         const userStore = useUserStore()
         if (userStore) {
           this.isLoggedIn = userStore.isLoggedIn
           this.username = userStore.username || username
+          this.baseCurrency = userStore.profile && userStore.profile.baseCurrency ? userStore.profile.baseCurrency : this.baseCurrency
+          if (this.isLoggedIn) {
+            userStore.fetchProfile().then(() => {
+              this.baseCurrency = userStore.profile && userStore.profile.baseCurrency ? userStore.profile.baseCurrency : 'CNY'
+            })
+          }
         }
       } catch (error) {
         console.error('Read user store failed:', error)
+      }
+    },
+    async handleCurrencyChange(event) {
+      const index = Number(event.detail.value)
+      const nextCurrency = this.currencyOptions[index].value
+      try {
+        const userStore = useUserStore()
+        const res = await userStore.updateBaseCurrency(nextCurrency)
+        if (res && res.code === 200) {
+          this.baseCurrency = nextCurrency
+          uni.showToast({ title: '已更新默认币种', icon: 'success' })
+        }
+      } catch (error) {
+        const message = error && error.message ? error.message : '币种更新失败'
+        uni.showToast({ title: message, icon: 'none' })
       }
     },
     async handleSubmit() {
@@ -145,129 +184,132 @@ export default {
 
 <style scoped>
 .container {
-  padding: 20rpx 20rpx calc(140rpx + env(safe-area-inset-bottom));
+  padding: 28rpx 24rpx calc(144rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
   box-sizing: border-box;
 }
 
 .profile-section {
-  padding-top: 56rpx;
+  padding-top: 24rpx;
 }
 
-.avatar-area {
+.profile-header {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  margin-bottom: 42rpx;
+  gap: 24rpx;
+  margin-bottom: 34rpx;
 }
 
 .avatar {
-  width: 128rpx;
-  height: 128rpx;
-  border-radius: 64rpx;
-  background: linear-gradient(135deg, #2EBD85, #16a085);
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(135deg, #14202d, #226f63);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20rpx;
+  flex-shrink: 0;
 }
 
 .avatar-text {
   color: #ffffff;
-  font-size: 48rpx;
-  font-weight: bold;
+  font-size: 42rpx;
+  font-weight: 800;
+}
+
+.profile-copy {
+  min-width: 0;
+  flex: 1;
 }
 
 .username {
+  display: block;
   font-size: 36rpx;
-  font-weight: 600;
-  color: #333333;
-  margin-bottom: 10rpx;
+  line-height: 48rpx;
+  font-weight: 700;
+  color: #17202a;
+  margin-bottom: 8rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .profile-subtitle {
   font-size: 26rpx;
-  color: #888888;
-  text-align: center;
+  color: #64748b;
   line-height: 38rpx;
 }
 
-.menu-list,
-.login-card,
-.summary-card {
+.login-card {
   background: #ffffff;
   border-radius: 16rpx;
-  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.05);
+  border: 1rpx solid #edf1f4;
+  box-shadow: 0 12rpx 30rpx rgba(26, 42, 58, 0.06);
 }
 
-.summary-card {
-  padding: 8rpx 30rpx;
-  margin-bottom: 24rpx;
-}
-
-.summary-row {
+.profile-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 76rpx;
-  border-bottom: 1rpx solid #f3f3f3;
+  padding: 26rpx 0;
+  border-top: 1rpx solid #e6edf2;
+  border-bottom: 1rpx solid #e6edf2;
 }
 
-.summary-row:last-child {
-  border-bottom: none;
+.currency-meta {
+  border-top: none;
+  margin-bottom: 32rpx;
 }
 
-.summary-label {
-  color: #777777;
+.meta-label {
+  color: #64748b;
   font-size: 28rpx;
 }
 
-.summary-value {
-  color: #333333;
+.meta-value {
+  color: #226f63;
   font-size: 28rpx;
-  font-weight: 500;
+  font-weight: 650;
 }
 
-.summary-value.active {
-  color: #2EBD85;
-}
-
-.menu-list {
-  padding: 0 30rpx;
-}
-
-.menu-item {
+.currency-picker {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 32rpx 0;
+  color: #226f63;
+  font-size: 28rpx;
+  font-weight: 650;
 }
 
-.menu-text {
+.picker-arrow {
+  margin-left: 10rpx;
+  color: #94a3b8;
+}
+
+.logout-btn {
+  margin: 0;
+  height: 84rpx;
+  line-height: 84rpx;
+  border-radius: 14rpx;
+  background: #ffffff;
   font-size: 30rpx;
-  color: #FF6B6B;
-}
-
-.menu-arrow {
-  color: #cccccc;
-  font-size: 28rpx;
+  color: #d94a62;
+  border: 1rpx solid #f0c3ca;
 }
 
 .login-section {
-  padding-top: 100rpx;
+  padding-top: 24rpx;
 }
 
 .login-card {
-  padding: 60rpx 40rpx;
+  padding: 42rpx 34rpx;
 }
 
 .login-title {
-  font-size: 44rpx;
-  font-weight: bold;
-  color: #333333;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #17202a;
   display: block;
-  text-align: center;
-  margin-bottom: 60rpx;
+  margin-bottom: 34rpx;
 }
 
 .input-group {
@@ -275,16 +317,17 @@ export default {
 }
 
 .login-input {
-  background: #f5f5f5;
-  border-radius: 16rpx;
+  background: #f6f8fb;
+  border-radius: 14rpx;
   height: 88rpx;
   padding: 0 30rpx;
   font-size: 30rpx;
   margin-bottom: 24rpx;
+  border: 1rpx solid #edf1f4;
 }
 
 .login-btn {
-  background: #2EBD85;
+  background: linear-gradient(135deg, #2ebd85, #239a88);
   color: #ffffff;
   border-radius: 16rpx;
   height: 88rpx;
@@ -298,7 +341,7 @@ export default {
 }
 
 .switch-text {
-  color: #2EBD85;
+  color: #226f63;
   font-size: 28rpx;
 }
 </style>

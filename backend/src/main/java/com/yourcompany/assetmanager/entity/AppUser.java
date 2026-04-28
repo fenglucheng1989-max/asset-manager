@@ -32,6 +32,8 @@ public class AppUser {
 
     private String role;
 
+    private String baseCurrency;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 
