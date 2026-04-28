@@ -24,7 +24,7 @@
 
     <view class="login-tip" v-if="!hasToken">
       <text class="login-tip-title">先登录后开始记录资产</text>
-      <text class="login-tip-text">登录后可新增账户、查看净资产和资产配置。</text>
+      <text class="login-tip-text">登录后可新增账户、查看净资产趋势和账户金额排行。</text>
       <button class="login-tip-btn" @click="goToMine">去登录</button>
     </view>
 
@@ -54,10 +54,6 @@
           class="account-item"
           v-for="(account, index) in rankedAccounts"
           :key="account.id"
-          :class="{ dragging: dragIndex === index }"
-          @longpress="startDrag(index)"
-          @touchmove="handleDragMove"
-          @touchend="endDrag"
           @click="handleAccountClick(account.id)"
         >
           <view class="account-left">
@@ -95,7 +91,7 @@
 
 <script>
 import { useAssetStore } from '../../store/asset'
-import { formatMoney, getAccountTypeName, getCurrencySymbol, toBaseAmount } from '../../utils/money'
+import { formatMoney, getAccountTypeName, toBaseAmount } from '../../utils/money'
 
 const DEFAULT_OVERVIEW = {
   totalAsset: 0,
@@ -113,12 +109,7 @@ export default {
       accounts: [],
       snapshots: [],
       pageError: '',
-      isLoading: false,
-      isSavingSort: false,
-      pendingSortSave: false,
-      dragIndex: -1,
-      dragRects: [],
-      isPressDragging: false
+      isLoading: false
     }
   },
   computed: {
@@ -132,75 +123,18 @@ export default {
         rankPercent: total > 0 ? Math.max(1, Math.round(Math.abs(item.baseAmount) / total * 100)) : 0
       }))
     },
-    currentChangeFromLatestSnapshot() {
-      if (!this.latestSnapshot) return 0
-      return Number(this.overview.netWorth || 0) - Number(this.latestSnapshot.netWorth || 0)
-    },
-    effectiveSnapshotChange() {
-      if (this.currentChangeFromLatestSnapshot !== 0) return this.currentChangeFromLatestSnapshot
-      return this.snapshotChange
-    },
-    currentIsDifferentFromLatestSnapshot() {
-      return this.latestSnapshot && this.currentChangeFromLatestSnapshot !== 0
-    },
     latestSnapshot() {
       if (!this.snapshots.length) return null
       return this.snapshots[this.snapshots.length - 1]
-    },
-    previousSnapshot() {
-      if (this.snapshots.length < 2) return null
-      return this.snapshots[this.snapshots.length - 2]
-    },
-    snapshotChange() {
-      if (!this.latestSnapshot || !this.previousSnapshot) return 0
-      return Number(this.latestSnapshot.netWorth || 0) - Number(this.previousSnapshot.netWorth || 0)
-    },
-    snapshotChangeText() {
-      if (!this.latestSnapshot) return '待记录'
-      if (this.currentIsDifferentFromLatestSnapshot) return this.formatSignedMoney(this.currentChangeFromLatestSnapshot)
-      if (!this.previousSnapshot) return '暂无对比'
-      return this.formatSignedMoney(this.snapshotChange)
-    },
-    trendChangeClass() {
-      if (this.effectiveSnapshotChange > 0) return 'positive'
-      if (this.effectiveSnapshotChange < 0) return 'negative'
-      return ''
-    },
-    trendSubtitle() {
-      if (!this.latestSnapshot) return '记录快照后开始追踪'
-      if (this.currentIsDifferentFromLatestSnapshot) return `当前相对 ${this.formatSnapshotDate(this.latestSnapshot.snapshotDate)}`
-      return `最近记录 ${this.formatSnapshotDate(this.latestSnapshot.snapshotDate)}`
     }
   },
   onShow() {
     this.refreshData()
   },
-  beforeUnmount() {
-    this.endDrag()
-  },
   methods: {
     formatMoney,
     getAccountTypeName,
-    getCurrencySymbol,
     toBaseAmount,
-    buildAllocationItems(sourceAccounts, palette) {
-      const groups = {}
-      sourceAccounts
-        .forEach(account => {
-          const typeName = getAccountTypeName(account.accountType)
-          groups[typeName] = (groups[typeName] || 0) + toBaseAmount(account)
-        })
-
-      const total = Object.values(groups).reduce((sum, value) => sum + value, 0)
-      if (total <= 0) return []
-
-      return Object.keys(groups).map((name, index) => ({
-        name,
-        value: groups[name],
-        percent: Math.round((groups[name] / total) * 100),
-        color: palette[index % palette.length]
-      }))
-    },
     async handleManualRefresh() {
       await this.refreshData({ showToast: true })
     },
@@ -239,94 +173,16 @@ export default {
         this.isLoading = false
       }
     },
-    formatSignedMoney(value) {
-      const amount = Number(value || 0)
-      if (amount === 0) return '¥0.00'
-      return `${amount > 0 ? '+' : '-'}${formatMoney(Math.abs(amount))}`
-    },
     formatSnapshotDate(value) {
       if (!value) return '--'
       const parts = String(value).split('-')
       if (parts.length !== 3) return value
       return `${Number(parts[1])}月${Number(parts[2])}日`
     },
-    getTodayText() {
-      const now = new Date()
-      const month = String(now.getMonth() + 1).padStart(2, '0')
-      const day = String(now.getDate()).padStart(2, '0')
-      return `${now.getFullYear()}-${month}-${day}`
-    },
-    startDrag(index) {
-      if (this.accounts.length < 2) return
-      this.dragIndex = index
-      this.isPressDragging = true
-      this.cacheDragRects()
-      uni.showToast({ title: '拖动调整顺序', icon: 'none', duration: 700 })
-    },
-    cacheDragRects() {
-      this.$nextTick(() => {
-        uni.createSelectorQuery()
-          .in(this)
-          .selectAll('.account-item')
-          .boundingClientRect((rects) => {
-            this.dragRects = Array.isArray(rects) ? rects : []
-          })
-          .exec()
-      })
-    },
-    getPointerY(event) {
-      const touch = event && event.touches && event.touches[0]
-      return touch ? touch.clientY : event.clientY
-    },
-    handleDragMove(event) {
-      if (this.dragIndex < 0) return
-      if (event && event.preventDefault) {
-        event.preventDefault()
-      }
-      const y = this.getPointerY(event)
-      const targetIndex = this.dragRects.findIndex(rect => y >= rect.top && y <= rect.bottom)
-      if (targetIndex < 0 || targetIndex === this.dragIndex) return
-
-      const nextAccounts = [...this.accounts]
-      const [item] = nextAccounts.splice(this.dragIndex, 1)
-      nextAccounts.splice(targetIndex, 0, item)
-      this.accounts = nextAccounts
-      this.dragIndex = targetIndex
-      this.pendingSortSave = true
-      this.cacheDragRects()
-    },
-    endDrag() {
-      if (this.dragIndex < 0) return
-      this.dragIndex = -1
-      this.dragRects = []
-      setTimeout(() => {
-        this.isPressDragging = false
-      }, 80)
-      if (this.pendingSortSave) {
-        this.saveSort()
-      }
-    },
-    async saveSort() {
-      if (this.isSavingSort) return
-      this.isSavingSort = true
-      try {
-        const assetStore = useAssetStore()
-        await assetStore.updateSort(this.accounts.map(account => account.id))
-        this.pendingSortSave = false
-        uni.showToast({ title: '排序已保存', icon: 'success' })
-      } catch (error) {
-        const message = error && error.message ? error.message : '排序保存失败'
-        uni.showToast({ title: message, icon: 'none' })
-        await this.refreshData()
-      } finally {
-        this.isSavingSort = false
-      }
-    },
     getIconText(name) {
       return name ? name.substring(0, 1) : '?'
     },
     handleAccountClick(id) {
-      if (this.dragIndex >= 0 || this.isPressDragging) return
       uni.navigateTo({ url: `/pages/account/detail?id=${id}` })
     },
     goToAddAccount() {

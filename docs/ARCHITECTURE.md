@@ -39,10 +39,10 @@ backend/src/main/java/com/yourcompany/assetmanager/
 
 ```text
 frontend/src/
-  pages/index/      资产总览、资产趋势、资产配置、账户列表、长按拖动排序
+  pages/index/      资产总览、资产趋势入口、账户金额排行
   pages/account/    账户详情、新增、编辑、归档账户，多币种和折算汇率录入
-  pages/transaction/ 流水列表、筛选、报表、分类维护、预算维护、记一笔表单
-  pages/trend/      资产快照、资产变化、日/月/年折线走势、账户金额排行、快照记录
+  pages/transaction/ 记账列表、周期筛选、报表、分类维护、预算维护、记一笔表单
+  pages/trend/      资产快照、日/月/年折线走势、账户金额排行、分页快照记录
   pages/mine/       登录、注册、登录状态、默认本位币、退出登录
   store/            用户、资产和流水状态
   utils/            请求封装、金额格式化

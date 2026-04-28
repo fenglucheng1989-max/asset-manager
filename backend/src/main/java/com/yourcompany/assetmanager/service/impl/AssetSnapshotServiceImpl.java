@@ -24,7 +24,7 @@ import java.util.List;
 public class AssetSnapshotServiceImpl implements AssetSnapshotService {
 
     private static final int DEFAULT_LIMIT = 30;
-    private static final int MAX_LIMIT = 365;
+    private static final int MAX_LIMIT = 120;
 
     private final AssetSnapshotMapper assetSnapshotMapper;
     private final AssetOverviewService assetOverviewService;
@@ -59,13 +59,14 @@ public class AssetSnapshotServiceImpl implements AssetSnapshotService {
     }
 
     @Override
-    public List<AssetSnapshotVO> listSnapshots(Long userId, Integer limit) {
+    public List<AssetSnapshotVO> listSnapshots(Long userId, Integer limit, Integer offset) {
         int safeLimit = normalizeLimit(limit);
+        int safeOffset = normalizeOffset(offset);
         List<AssetSnapshot> snapshots = assetSnapshotMapper.selectList(
                 new LambdaQueryWrapper<AssetSnapshot>()
                         .eq(AssetSnapshot::getUserId, userId)
                         .orderByDesc(AssetSnapshot::getSnapshotDate)
-                        .last("LIMIT " + safeLimit));
+                        .last("LIMIT " + safeLimit + " OFFSET " + safeOffset));
         Collections.reverse(snapshots);
         return snapshots.stream().map(this::toVO).toList();
     }
@@ -86,6 +87,11 @@ public class AssetSnapshotServiceImpl implements AssetSnapshotService {
     private int normalizeLimit(Integer limit) {
         if (limit == null) return DEFAULT_LIMIT;
         return Math.max(1, Math.min(MAX_LIMIT, limit));
+    }
+
+    private int normalizeOffset(Integer offset) {
+        if (offset == null) return 0;
+        return Math.max(0, offset);
     }
 
     private AssetSnapshotVO toVO(AssetSnapshot snapshot) {

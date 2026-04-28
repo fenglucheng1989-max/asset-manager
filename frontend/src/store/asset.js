@@ -32,10 +32,23 @@ export const useAssetStore = defineStore('asset', {
     async fetchAccountHistory(id, limit = 50) {
       return request({ url: `/api/v1/asset/accounts/${id}/history?limit=${limit}`, method: 'GET' })
     },
-    async fetchSnapshots(limit = 30) {
-      const res = await request({ url: `/api/v1/asset/snapshots?limit=${limit}`, method: 'GET' })
+    async fetchSnapshots(options = 30) {
+      const params = typeof options === 'number'
+        ? { limit: options, offset: 0, mode: 'replace' }
+        : { limit: 30, offset: 0, mode: 'replace', ...options }
+      const res = await request({
+        url: `/api/v1/asset/snapshots?limit=${params.limit}&offset=${params.offset}`,
+        method: 'GET'
+      })
       if (res.code === 200) {
-        this.snapshots = Array.isArray(res.data) ? res.data : []
+        const rows = Array.isArray(res.data) ? res.data : []
+        if (params.mode === 'prepend') {
+          this.snapshots = [...rows, ...this.snapshots]
+        } else if (params.mode === 'append') {
+          this.snapshots = [...this.snapshots, ...rows]
+        } else {
+          this.snapshots = rows
+        }
       }
       return res
     },

@@ -8,7 +8,7 @@ public interface AssetSnapshotService {
 
     AssetSnapshotVO createTodaySnapshot(Long userId);
 
-    List<AssetSnapshotVO> listSnapshots(Long userId, Integer limit);
+    List<AssetSnapshotVO> listSnapshots(Long userId, Integer limit, Integer offset);
 
     void createDailySnapshotsForAllUsers();
 }

@@ -115,7 +115,7 @@
     <view class="history-section">
       <view class="section-header">
         <text class="section-title">快照记录</text>
-        <text class="section-subtitle">{{ visibleSnapshotCount }} / {{ snapshots.length }} 条</text>
+        <text class="section-subtitle">已加载 {{ snapshots.length }} 条</text>
       </view>
 
       <view class="history-list" v-if="snapshots.length > 0">
@@ -126,7 +126,9 @@
           </view>
           <text class="history-value">{{ formatMoney(item.netWorth) }}</text>
         </view>
-        <button class="load-more-btn" v-if="visibleSnapshotCount < snapshots.length" @click="visibleSnapshotCount += 20">查看更多</button>
+        <button class="load-more-btn" v-if="hasMoreSnapshots" :disabled="isLoadingMoreSnapshots" @click="loadMoreSnapshots">
+          {{ isLoadingMoreSnapshots ? '加载中' : '查看更多' }}
+        </button>
       </view>
 
       <view class="empty-card" v-else>
@@ -156,7 +158,9 @@ export default {
       accounts: [],
       isLoading: false,
       isSnapshotSaving: false,
-      visibleSnapshotCount: 20,
+      snapshotPageSize: 30,
+      hasMoreSnapshots: true,
+      isLoadingMoreSnapshots: false,
       selectedPoint: null,
       chartRange: 'month',
       rangeOptions: [
@@ -171,46 +175,17 @@ export default {
       if (!this.snapshots.length) return null
       return this.snapshots[this.snapshots.length - 1]
     },
-    currentChangeFromLatestSnapshot() {
-      if (!this.latestSnapshot) return 0
-      return Number(this.overview.netWorth || 0) - Number(this.latestSnapshot.netWorth || 0)
-    },
-    trendChangeClass() {
-      if (this.currentChangeFromLatestSnapshot > 0) return 'positive'
-      if (this.currentChangeFromLatestSnapshot < 0) return 'negative'
-      return ''
-    },
-    snapshotChangeText() {
-      if (!this.latestSnapshot) return '待记录'
-      return this.formatSignedMoney(this.currentChangeFromLatestSnapshot)
-    },
-    changeSymbol() {
-      if (this.currentChangeFromLatestSnapshot > 0) return '+'
-      if (this.currentChangeFromLatestSnapshot < 0) return '-'
-      return '='
-    },
-    changeDescription() {
-      if (!this.latestSnapshot) return '尚未形成对比'
-      if (this.currentChangeFromLatestSnapshot > 0) return '当前净资产高于最近一次快照'
-      if (this.currentChangeFromLatestSnapshot < 0) return '当前净资产低于最近一次快照'
-      return '当前账户余额与最近一次快照一致'
-    },
     hasTodaySnapshot() {
       return this.latestSnapshot && this.latestSnapshot.snapshotDate === this.getTodayText()
     },
     snapshotButtonText() {
       return this.hasTodaySnapshot ? '更新今日' : '记录今日'
     },
-    trendSubtitle() {
-      if (!this.latestSnapshot) return '尚未记录'
-      if (this.currentChangeFromLatestSnapshot === 0) return '当前与最近记录一致'
-      return `当前相对 ${this.formatSnapshotDate(this.latestSnapshot.snapshotDate)}`
-    },
     reversedSnapshots() {
       return [...this.snapshots].reverse()
     },
     visibleSnapshots() {
-      return this.reversedSnapshots.slice(0, this.visibleSnapshotCount)
+      return this.reversedSnapshots
     },
     selectedPointChangeText() {
       if (!this.selectedPoint) return ''
@@ -352,10 +327,11 @@ export default {
         const assetStore = useAssetStore()
         await assetStore.fetchOverview()
         await assetStore.fetchAccounts()
-        await assetStore.fetchSnapshots(365)
+        const snapshotRes = await assetStore.fetchSnapshots({ limit: this.snapshotPageSize, offset: 0 })
         this.overview = { ...DEFAULT_OVERVIEW, ...(assetStore.overview || {}) }
         this.accounts = Array.isArray(assetStore.accounts) ? [...assetStore.accounts] : []
         this.snapshots = Array.isArray(assetStore.snapshots) ? [...assetStore.snapshots] : []
+        this.hasMoreSnapshots = Array.isArray(snapshotRes.data) && snapshotRes.data.length === this.snapshotPageSize
         this.selectedPoint = null
       } finally {
         this.isLoading = false
@@ -363,6 +339,22 @@ export default {
     },
     selectChartPoint(point) {
       this.selectedPoint = point
+    },
+    async loadMoreSnapshots() {
+      if (this.isLoadingMoreSnapshots || !this.hasMoreSnapshots) return
+      this.isLoadingMoreSnapshots = true
+      try {
+        const assetStore = useAssetStore()
+        const res = await assetStore.fetchSnapshots({
+          limit: this.snapshotPageSize,
+          offset: this.snapshots.length,
+          mode: 'prepend'
+        })
+        this.snapshots = Array.isArray(assetStore.snapshots) ? [...assetStore.snapshots] : []
+        this.hasMoreSnapshots = Array.isArray(res.data) && res.data.length === this.snapshotPageSize
+      } finally {
+        this.isLoadingMoreSnapshots = false
+      }
     },
     async handleCreateSnapshot() {
       if (this.isSnapshotSaving) return
@@ -372,8 +364,10 @@ export default {
         const res = await assetStore.createSnapshot()
         if (res && res.code === 200) {
           await assetStore.fetchOverview()
+          const snapshotRes = await assetStore.fetchSnapshots({ limit: this.snapshotPageSize, offset: 0 })
           this.overview = { ...DEFAULT_OVERVIEW, ...(assetStore.overview || {}) }
           this.snapshots = Array.isArray(assetStore.snapshots) ? [...assetStore.snapshots] : []
+          this.hasMoreSnapshots = Array.isArray(snapshotRes.data) && snapshotRes.data.length === this.snapshotPageSize
           uni.showToast({ title: '快照已记录', icon: 'success' })
         }
       } finally {

@@ -101,9 +101,10 @@ public class AssetController {
 
     @GetMapping("/snapshots")
     public ApiResponse<List<AssetSnapshotVO>> listSnapshots(Authentication authentication,
-                                                            @RequestParam(required = false) Integer limit) {
+                                                            @RequestParam(required = false) Integer limit,
+                                                            @RequestParam(required = false) Integer offset) {
         Long userId = getCurrentUserId(authentication);
-        return ApiResponse.success(assetSnapshotService.listSnapshots(userId, limit));
+        return ApiResponse.success(assetSnapshotService.listSnapshots(userId, limit, offset));
     }
 
     private Long getCurrentUserId(Authentication authentication) {
