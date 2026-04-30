@@ -38,21 +38,21 @@ class AssetManagerApiIntegrationTest {
 
     @Test
     void registerLoginAndRejectInvalidPassword() throws Exception {
-        String username = uniqueUsername();
-        String token = register(username, "pass123456");
+        String email = uniqueEmail();
+        String token = register(email, "pass123456");
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("username", username, "password", "pass123456"))))
+                        .content(json(Map.of("email", email, "password", "pass123456"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("操作成功"))
                 .andExpect(jsonPath("$.data.token").isNotEmpty());
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("username", username, "password", "wrong"))))
+                        .content(json(Map.of("email", email, "password", "wrong"))))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value("用户名或密码错误"));
+                .andExpect(jsonPath("$.message").value("邮箱或密码错误"));
 
         mockMvc.perform(get("/api/v1/asset/accounts")
                         .header("Authorization", "Bearer " + token))
@@ -70,18 +70,16 @@ class AssetManagerApiIntegrationTest {
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of(
-                                "username", uniqueUsername(),
-                                "password", "pass123456",
-                                "email", "noaccept@test.local"
+                                "email", "noaccept@test.local",
+                                "password", "pass123456"
                         ))))
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of(
-                                "username", uniqueUsername(),
-                                "password", "pass123456",
                                 "email", "oldversion@test.local",
+                                "password", "pass123456",
                                 "acceptLegal", true,
                                 "acceptedTermsVersion", "old",
                                 "acceptedPrivacyVersion", "old"
@@ -91,7 +89,7 @@ class AssetManagerApiIntegrationTest {
 
     @Test
     void accountCrudSortAndOverviewWorkTogether() throws Exception {
-        String token = register(uniqueUsername(), "pass123456");
+        String token = register(uniqueEmail(), "pass123456");
 
         long bankId = createAccount(token, Map.of(
                 "name", "工资卡",
@@ -178,7 +176,7 @@ class AssetManagerApiIntegrationTest {
 
     @Test
     void accountArchiveRemovesAccountFromListAndOverview() throws Exception {
-        String token = register(uniqueUsername(), "pass123456");
+        String token = register(uniqueEmail(), "pass123456");
 
         long accountId = createAccount(token, Map.of(
                 "name", "待归档账户",
@@ -210,7 +208,7 @@ class AssetManagerApiIntegrationTest {
 
     @Test
     void userCanSetBaseCurrency() throws Exception {
-        String token = register(uniqueUsername(), "pass123456");
+        String token = register(uniqueEmail(), "pass123456");
 
         mockMvc.perform(get("/api/v1/user/profile")
                         .header("Authorization", "Bearer " + token))
@@ -228,7 +226,7 @@ class AssetManagerApiIntegrationTest {
 
     @Test
     void snapshotCanBeCreatedUpdatedAndListed() throws Exception {
-        String token = register(uniqueUsername(), "pass123456");
+        String token = register(uniqueEmail(), "pass123456");
 
         long accountId = createAccount(token, Map.of(
                 "name", "投资账户",
@@ -275,7 +273,7 @@ class AssetManagerApiIntegrationTest {
 
     @Test
     void accountCenterCanExportAndClearUserData() throws Exception {
-        String token = register(uniqueUsername(), "pass123456");
+        String token = register(uniqueEmail(), "pass123456");
 
         long accountId = createAccount(token, Map.of(
                 "name", "导出账户",
@@ -365,8 +363,8 @@ class AssetManagerApiIntegrationTest {
 
     @Test
     void accountCenterCanChangePasswordAndDeleteAccount() throws Exception {
-        String username = uniqueUsername();
-        String token = register(username, "pass123456");
+        String email = uniqueEmail();
+        String token = register(email, "pass123456");
 
         mockMvc.perform(put("/api/v1/user/security/password")
                         .header("Authorization", "Bearer " + token)
@@ -379,12 +377,12 @@ class AssetManagerApiIntegrationTest {
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("username", username, "password", "pass123456"))))
+                        .content(json(Map.of("email", email, "password", "pass123456"))))
                 .andExpect(status().isUnauthorized());
 
         String loginResponse = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("username", username, "password", "next123456"))))
+                        .content(json(Map.of("email", email, "password", "next123456"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.token").isNotEmpty())
                 .andReturn()
@@ -400,13 +398,13 @@ class AssetManagerApiIntegrationTest {
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("username", username, "password", "next123456"))))
+                        .content(json(Map.of("email", email, "password", "next123456"))))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void userCanSubmitFeedback() throws Exception {
-        String token = register(uniqueUsername(), "pass123456");
+        String token = register(uniqueEmail(), "pass123456");
 
         mockMvc.perform(post("/api/v1/user/feedback")
                         .header("Authorization", "Bearer " + token)
@@ -430,7 +428,7 @@ class AssetManagerApiIntegrationTest {
 
     @Test
     void transactionRecordsDriveBalancesAndCanBeReversed() throws Exception {
-        String token = register(uniqueUsername(), "pass123456");
+        String token = register(uniqueEmail(), "pass123456");
 
         long accountId = createAccount(token, Map.of(
                 "name", "现金账户",
@@ -493,7 +491,7 @@ class AssetManagerApiIntegrationTest {
 
     @Test
     void transferRecordMovesBalanceBetweenAccounts() throws Exception {
-        String token = register(uniqueUsername(), "pass123456");
+        String token = register(uniqueEmail(), "pass123456");
 
         long fromId = createAccount(token, Map.of(
                 "name", "银行卡",
@@ -546,7 +544,7 @@ class AssetManagerApiIntegrationTest {
 
     @Test
     void transactionEnhancementsSupportCategoryBudgetFilterAndReport() throws Exception {
-        String token = register(uniqueUsername(), "pass123456");
+        String token = register(uniqueEmail(), "pass123456");
 
         long accountId = createAccount(token, Map.of(
                 "name", "日常账户",
@@ -618,7 +616,7 @@ class AssetManagerApiIntegrationTest {
 
     @Test
     void financialInsightProvidesHealthSummaryAndMilestones() throws Exception {
-        String token = register(uniqueUsername(), "pass123456");
+        String token = register(uniqueEmail(), "pass123456");
 
         long accountId = createAccount(token, Map.of(
                 "name", "稳健账户",
@@ -689,19 +687,19 @@ class AssetManagerApiIntegrationTest {
                 .andExpect(jsonPath("$.data.note").value("还清车贷"));
     }
 
-    private String register(String username, String password) throws Exception {
+    private String register(String email, String password) throws Exception {
         String response = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of(
-                                "username", username,
+                                "email", email,
                                 "password", password,
-                                "email", username + "@test.local",
                                 "acceptLegal", true,
                                 "acceptedTermsVersion", "2026.04.28",
                                 "acceptedPrivacyVersion", "2026.04.28"
                         ))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.token").isNotEmpty())
+                .andExpect(jsonPath("$.data.email").value(email))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -726,7 +724,7 @@ class AssetManagerApiIntegrationTest {
 
     @Test
     void yearlyBudgetSavesAndListsCorrectly() throws Exception {
-        String token = register(uniqueUsername(), "pass123456");
+        String token = register(uniqueEmail(), "pass123456");
         long categoryId = createCategory(token, "旅行", "EXPENSE", "#FF6B6B");
 
         mockMvc.perform(post("/api/v1/transactions/budgets")
@@ -769,8 +767,8 @@ class AssetManagerApiIntegrationTest {
         return objectMapper.readTree(response).path("data").path("id").asLong();
     }
 
-    private String uniqueUsername() {
-        return "u_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+    private String uniqueEmail() {
+        return "u_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "@test.local";
     }
 
     private String json(Object value) throws Exception {

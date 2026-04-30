@@ -19,16 +19,21 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final AppUserMapper appUserMapper;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String subject) throws UsernameNotFoundException {
         AppUser appUser = appUserMapper.selectOne(
-                new LambdaQueryWrapper<AppUser>().eq(AppUser::getUsername, username));
+                new LambdaQueryWrapper<AppUser>().eq(AppUser::getEmail, subject));
 
         if (appUser == null) {
-            throw new UsernameNotFoundException("用户不存在：" + username);
+            appUser = appUserMapper.selectOne(
+                    new LambdaQueryWrapper<AppUser>().eq(AppUser::getUsername, subject));
+        }
+
+        if (appUser == null) {
+            throw new UsernameNotFoundException("用户不存在：" + subject);
         }
 
         String role = appUser.getRole() == null || appUser.getRole().isBlank() ? "USER" : appUser.getRole();
-        return User.withUsername(appUser.getUsername())
+        return User.withUsername(appUser.getEmail())
                 .password(appUser.getPasswordHash())
                 .authorities(List.of(() -> "ROLE_" + role.toUpperCase()))
                 .build();

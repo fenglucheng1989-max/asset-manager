@@ -22,7 +22,7 @@ public abstract class BaseUserController {
         }
 
         AppUser user = appUserMapper.selectOne(new LambdaQueryWrapper<AppUser>()
-                .eq(AppUser::getUsername, authentication.getName()));
+                .eq(AppUser::getEmail, authentication.getName()));
         if (user == null) {
             throw new BusinessException(401, "请先登录");
         }

@@ -108,19 +108,14 @@ public class AssetController {
     }
 
     private Long getCurrentUserId(Authentication authentication) {
-        // The userId is stored in the JWT claims; we need a helper to extract it
-        // For now, we retrieve the user from database by username
-        String username = authentication.getName();
-        // This is a simplified approach - in production, extract userId from JWT directly
-        return getUserIdByUsername(username);
+        String email = authentication.getName();
+        return getUserIdByEmail(email);
     }
 
-    private Long getUserIdByUsername(String username) {
-        // This will be resolved via the security context
-        // We inject the AppUserMapper for this lookup
+    private Long getUserIdByEmail(String email) {
         return appUserMapper.selectOne(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.yourcompany.assetmanager.entity.AppUser>()
-                        .eq(com.yourcompany.assetmanager.entity.AppUser::getUsername, username)).getId();
+                        .eq(com.yourcompany.assetmanager.entity.AppUser::getEmail, email)).getId();
     }
 
     @jakarta.annotation.Resource

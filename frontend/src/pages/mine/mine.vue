@@ -105,13 +105,13 @@
         <text class="login-title">{{ isRegister ? '注册' : '登录' }}</text>
 
         <view class="input-group">
-          <input class="login-input" v-model="loginForm.username" placeholder="用户名" />
+          <input class="login-input" v-model="loginForm.email" placeholder="邮箱" />
           <input class="login-input" v-model="loginForm.password" type="password" placeholder="密码" />
           <input
             v-if="isRegister"
             class="login-input"
-            v-model="loginForm.email"
-            placeholder="邮箱（可选）"
+            v-model="loginForm.username"
+            placeholder="用户名（选填，自动生成）"
           />
           <view v-if="isRegister" class="legal-row" @click="loginForm.acceptLegal = !loginForm.acceptLegal">
             <view class="legal-check" :class="{ checked: loginForm.acceptLegal }">
@@ -152,9 +152,9 @@ export default {
       isRegister: false,
       authSubmitting: false,
       loginForm: {
-        username: '',
-        password: '',
         email: '',
+        password: '',
+        username: '',
         acceptLegal: false
       },
       legalDocuments: {
@@ -210,8 +210,13 @@ export default {
     },
     async handleSubmit() {
       if (this.authSubmitting) return
-      if (!this.loginForm.username.trim() || !this.loginForm.password) {
-        uni.showToast({ title: '请输入用户名和密码', icon: 'none' })
+      const email = this.loginForm.email.trim()
+      if (!email || !this.loginForm.password) {
+        uni.showToast({ title: '请输入邮箱和密码', icon: 'none' })
+        return
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        uni.showToast({ title: '邮箱格式不正确', icon: 'none' })
         return
       }
       if (this.isRegister && !this.loginForm.acceptLegal) {
@@ -227,12 +232,12 @@ export default {
           await this.fetchLegalDocuments()
         }
         res = this.isRegister
-          ? await userStore.register(this.loginForm.username, this.loginForm.password, this.loginForm.email, {
+          ? await userStore.register(email, this.loginForm.password, this.loginForm.username || undefined, {
               acceptLegal: this.loginForm.acceptLegal,
               acceptedTermsVersion: this.legalDocuments.terms && this.legalDocuments.terms.version,
               acceptedPrivacyVersion: this.legalDocuments.privacy && this.legalDocuments.privacy.version
             })
-          : await userStore.login(this.loginForm.username, this.loginForm.password)
+          : await userStore.login(email, this.loginForm.password)
       } catch (error) {
         const message = error && error.message ? error.message : '登录失败'
         uni.showToast({ title: message, icon: 'none' })

@@ -20,7 +20,7 @@ public class LocalAdminInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         AppUser existing = appUserMapper.selectOne(
-                new LambdaQueryWrapper<AppUser>().eq(AppUser::getUsername, "admin"));
+                new LambdaQueryWrapper<AppUser>().eq(AppUser::getEmail, "admin@local"));
         if (existing != null) {
             if (!"ADMIN".equalsIgnoreCase(existing.getRole())) {
                 existing.setRole("ADMIN");

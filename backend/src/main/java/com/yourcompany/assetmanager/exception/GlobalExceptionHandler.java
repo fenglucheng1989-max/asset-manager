@@ -17,7 +17,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException e) {
-        return buildResponse(HttpStatus.UNAUTHORIZED.value(), "用户名或密码错误");
+        return buildResponse(HttpStatus.UNAUTHORIZED.value(), "邮箱或密码错误");
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)

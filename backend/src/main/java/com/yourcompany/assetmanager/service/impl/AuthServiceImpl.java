@@ -3,6 +3,7 @@ package com.yourcompany.assetmanager.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.yourcompany.assetmanager.dto.AuthLoginDTO;
 import com.yourcompany.assetmanager.dto.AuthRegisterDTO;
+import com.yourcompany.assetmanager.dto.AuthResult;
 import com.yourcompany.assetmanager.entity.AppUser;
 import com.yourcompany.assetmanager.entity.LegalDocument;
 import com.yourcompany.assetmanager.exception.BusinessException;
@@ -26,19 +27,25 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtils jwtUtils;
 
     @Override
-    public String register(AuthRegisterDTO dto) {
+    public AuthResult register(AuthRegisterDTO dto) {
         ensureLegalAccepted(dto);
 
-        AppUser existing = appUserMapper.selectOne(
-                new LambdaQueryWrapper<AppUser>().eq(AppUser::getUsername, dto.getUsername()));
-        if (existing != null) {
-            throw new BusinessException("用户名已存在");
+        String email = dto.getEmail().trim().toLowerCase();
+        AppUser emailExists = appUserMapper.selectOne(
+                new LambdaQueryWrapper<AppUser>().eq(AppUser::getEmail, email));
+        if (emailExists != null) {
+            throw new BusinessException("该邮箱已被注册");
         }
 
+        String username = (dto.getUsername() != null && !dto.getUsername().isBlank())
+                ? dto.getUsername().trim()
+                : generateUsernameFromEmail(email);
+        username = resolveUsernameCollision(username);
+
         AppUser user = AppUser.builder()
-                .username(dto.getUsername())
+                .username(username)
                 .passwordHash(passwordEncoder.encode(dto.getPassword()))
-                .email(dto.getEmail())
+                .email(email)
                 .role("USER")
                 .acceptedTermsVersion(dto.getAcceptedTermsVersion())
                 .acceptedPrivacyVersion(dto.getAcceptedPrivacyVersion())
@@ -47,7 +54,29 @@ public class AuthServiceImpl implements AuthService {
 
         appUserMapper.insert(user);
 
-        return jwtUtils.generateToken(user.getUsername(), user.getId());
+        return new AuthResult(
+                jwtUtils.generateToken(user.getEmail(), user.getId()),
+                user.getUsername(),
+                user.getEmail());
+    }
+
+    private String generateUsernameFromEmail(String email) {
+        String prefix = email.substring(0, email.indexOf('@'));
+        String cleaned = prefix.replaceAll("[^a-zA-Z0-9_\\u4e00-\\u9fa5]", "");
+        return cleaned.isEmpty()
+                ? "user_" + System.currentTimeMillis() % 100000
+                : cleaned;
+    }
+
+    private String resolveUsernameCollision(String baseUsername) {
+        String candidate = baseUsername;
+        int suffix = 1;
+        while (appUserMapper.selectOne(
+                new LambdaQueryWrapper<AppUser>().eq(AppUser::getUsername, candidate)) != null) {
+            candidate = baseUsername + suffix;
+            suffix++;
+        }
+        return candidate;
     }
 
     private void ensureLegalAccepted(AuthRegisterDTO dto) {
@@ -75,14 +104,23 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public String login(AuthLoginDTO dto) {
+    public AuthResult login(AuthLoginDTO dto) {
+        String email = dto.getEmail().trim().toLowerCase();
         AppUser user = appUserMapper.selectOne(
-                new LambdaQueryWrapper<AppUser>().eq(AppUser::getUsername, dto.getUsername()));
+                new LambdaQueryWrapper<AppUser>().eq(AppUser::getEmail, email));
 
-        if (user == null || !passwordEncoder.matches(dto.getPassword(), user.getPasswordHash())) {
-            throw new BusinessException(401, "用户名或密码错误");
+        if (user == null) {
+            user = appUserMapper.selectOne(
+                    new LambdaQueryWrapper<AppUser>().eq(AppUser::getUsername, dto.getEmail().trim()));
         }
 
-        return jwtUtils.generateToken(user.getUsername(), user.getId());
+        if (user == null || !passwordEncoder.matches(dto.getPassword(), user.getPasswordHash())) {
+            throw new BusinessException(401, "邮箱或密码错误");
+        }
+
+        return new AuthResult(
+                jwtUtils.generateToken(user.getEmail(), user.getId()),
+                user.getUsername(),
+                user.getEmail());
     }
 }

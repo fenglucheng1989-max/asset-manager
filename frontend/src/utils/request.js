@@ -35,6 +35,7 @@ export function request(options) {
         if (res.statusCode === 401) {
           uni.removeStorageSync('token')
           uni.removeStorageSync('username')
+          uni.removeStorageSync('email')
           uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
           setTimeout(() => {
             uni.switchTab({ url: '/pages/mine/mine' })
@@ -79,6 +80,7 @@ export function requestRaw(options) {
         if (res.statusCode === 401) {
           uni.removeStorageSync('token')
           uni.removeStorageSync('username')
+          uni.removeStorageSync('email')
           uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
           setTimeout(() => {
             uni.switchTab({ url: '/pages/mine/mine' })

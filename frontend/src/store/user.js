@@ -5,34 +5,37 @@ export const useUserStore = defineStore('user', {
   state: () => ({
     token: uni.getStorageSync('token') || '',
     username: uni.getStorageSync('username') || '',
+    email: uni.getStorageSync('email') || '',
     profile: uni.getStorageSync('userProfile') || null
   }),
   getters: {
     isLoggedIn: (state) => !!state.token
   },
   actions: {
-    async login(username, password) {
+    async login(email, password) {
       const res = await request({
         url: '/api/v1/auth/login',
         method: 'POST',
-        data: { username, password }
+        data: { email, password }
       })
       if (res.code === 200) {
         this.token = res.data.token
-        this.username = username
+        this.username = res.data.username
+        this.email = res.data.email
         uni.setStorageSync('token', this.token)
-        uni.setStorageSync('username', username)
+        uni.setStorageSync('username', this.username)
+        uni.setStorageSync('email', this.email)
       }
       return res
     },
-    async register(username, password, email, legal = {}) {
+    async register(email, password, username, legal = {}) {
       const res = await request({
         url: '/api/v1/auth/register',
         method: 'POST',
         data: {
-          username,
-          password,
           email,
+          password,
+          username: username || undefined,
           acceptLegal: legal.acceptLegal,
           acceptedTermsVersion: legal.acceptedTermsVersion,
           acceptedPrivacyVersion: legal.acceptedPrivacyVersion
@@ -40,9 +43,11 @@ export const useUserStore = defineStore('user', {
       })
       if (res.code === 200) {
         this.token = res.data.token
-        this.username = username
+        this.username = res.data.username
+        this.email = res.data.email
         uni.setStorageSync('token', this.token)
-        uni.setStorageSync('username', username)
+        uni.setStorageSync('username', this.username)
+        uni.setStorageSync('email', this.email)
       }
       return res
     },
@@ -135,9 +140,11 @@ export const useUserStore = defineStore('user', {
     logout() {
       this.token = ''
       this.username = ''
+      this.email = ''
       this.profile = null
       uni.removeStorageSync('token')
       uni.removeStorageSync('username')
+      uni.removeStorageSync('email')
       uni.removeStorageSync('userProfile')
     }
   }
