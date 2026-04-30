@@ -112,6 +112,10 @@ export const useUserStore = defineStore('user', {
       })
       if (res.code === 200) {
         this.profile = res.data
+        if (res.data.username) {
+          this.username = res.data.username
+          uni.setStorageSync('username', res.data.username)
+        }
         uni.setStorageSync('userProfile', res.data)
       }
       return res

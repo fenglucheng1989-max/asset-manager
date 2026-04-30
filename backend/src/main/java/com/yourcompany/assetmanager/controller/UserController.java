@@ -1,5 +1,6 @@
 package com.yourcompany.assetmanager.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.yourcompany.assetmanager.dto.ChangePasswordDTO;
 import com.yourcompany.assetmanager.dto.DeleteAccountDTO;
 import com.yourcompany.assetmanager.dto.UpdateProfileDTO;
@@ -71,6 +72,17 @@ public class UserController extends BaseUserController {
         }
         if (dto.getEmail() != null) {
             user.setEmail(dto.getEmail().trim().isEmpty() ? null : dto.getEmail().trim());
+        }
+        if (dto.getUsername() != null && !dto.getUsername().trim().isEmpty()) {
+            String newUsername = dto.getUsername().trim();
+            if (!newUsername.equals(user.getUsername())) {
+                AppUser conflict = appUserMapper.selectOne(
+                        new LambdaQueryWrapper<AppUser>().eq(AppUser::getUsername, newUsername));
+                if (conflict != null) {
+                    throw new BusinessException(400, "用户名已被占用");
+                }
+                user.setUsername(newUsername);
+            }
         }
         appUserMapper.updateById(user);
         return ApiResponse.success(toProfile(user));

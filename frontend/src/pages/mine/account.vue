@@ -15,13 +15,14 @@
     </view>
 
     <view class="section-group">
-      <view class="section-item">
+      <view class="section-item" @click="goUsername">
         <view class="item-icon"><text class="item-icon-text">☺</text></view>
         <view class="item-copy">
           <text class="item-title">用户名</text>
-          <text class="item-desc">注册后不可修改</text>
+          <text class="item-desc">点击修改</text>
         </view>
         <text class="item-value">{{ username }}</text>
+        <text class="item-arrow">›</text>
       </view>
 
       <view class="section-item" @click="goEmail">
@@ -152,6 +153,9 @@ export default {
     },
     goEmail() {
       uni.navigateTo({ url: '/pages/mine/email' })
+    },
+    goUsername() {
+      uni.navigateTo({ url: '/pages/mine/username' })
     },
     goSecurity() {
       uni.navigateTo({ url: '/pages/mine/security' })
