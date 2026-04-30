@@ -6,7 +6,7 @@
           <text class="account-name">{{ account.name }}</text>
           <text class="account-type">{{ getAccountTypeName(account.accountType) }}</text>
         </view>
-        <view class="account-mark" :style="{ backgroundColor: account.colorHex || '#2EBD85' }">
+        <view class="account-mark" :style="getAccountMarkStyle(account)">
           <text>{{ getIconText(account.name) }}</text>
         </view>
       </view>
@@ -141,6 +141,13 @@ export default {
     getIconText(name) {
       return name ? name.substring(0, 1) : '?'
     },
+    getAccountMarkStyle(account) {
+      return {
+        color: 'var(--app-primary, #2EBD85)',
+        backgroundColor: 'var(--app-soft-bg, rgba(46, 189, 133, 0.14))',
+        borderColor: 'var(--app-border, rgba(46, 189, 133, 0.22))'
+      }
+    },
     getChangeTitle(type) {
       if (type === 'CREATE') return '创建账户'
       if (type === 'MANUAL_ADJUST') return '手动调整余额'
@@ -248,10 +255,10 @@ export default {
 
 .account-card,
 .history-section {
-  background: #ffffff;
+  background: var(--app-card-bg, #ffffff);
   border-radius: 18rpx;
-  border: 1rpx solid #edf1f4;
-  box-shadow: 0 12rpx 30rpx rgba(26, 42, 58, 0.06);
+  border: 1rpx solid var(--app-border, #edf1f4);
+  box-shadow: var(--app-shadow, 0 12rpx 30rpx rgba(26, 42, 58, 0.06));
 }
 
 .account-card {
@@ -271,7 +278,7 @@ export default {
 
 .account-name {
   display: block;
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 38rpx;
   line-height: 50rpx;
   font-weight: 800;
@@ -283,7 +290,7 @@ export default {
 .section-subtitle,
 .history-sub,
 .history-date {
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 24rpx;
   line-height: 34rpx;
 }
@@ -295,15 +302,16 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--app-primary-dark, #226f63);
   font-size: 34rpx;
   font-weight: 800;
+  border: 1rpx solid transparent;
 }
 
 .balance {
   display: block;
   margin-top: 40rpx;
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 62rpx;
   line-height: 76rpx;
   font-weight: 850;
@@ -311,7 +319,7 @@ export default {
 }
 
 .balance.liability {
-  color: #d94a62;
+  color: var(--app-liability-color, #d94a62);
 }
 
 .balance-label,
@@ -331,15 +339,15 @@ export default {
   height: 82rpx;
   padding: 0 22rpx 0 26rpx;
   border-radius: 18rpx;
-  background: #f6f8fb;
-  border: 1rpx solid #edf1f4;
+  background: var(--app-input-bg, #f6f8fb);
+  border: 1rpx solid var(--app-border, #edf1f4);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .adjust-action-title {
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 28rpx;
   font-weight: 700;
 }
@@ -348,8 +356,8 @@ export default {
   width: 44rpx;
   height: 44rpx;
   border-radius: 50%;
-  background: #eef5f2;
-  color: #226f63;
+  background: var(--app-soft-bg, #eef5f2);
+  color: var(--app-primary-dark, #226f63);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -368,7 +376,7 @@ export default {
 }
 
 .section-title {
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 32rpx;
   font-weight: 750;
 }
@@ -376,7 +384,7 @@ export default {
 .history-item {
   align-items: flex-start;
   padding: 26rpx 0;
-  border-bottom: 1rpx solid #edf1f4;
+  border-bottom: 1rpx solid var(--app-border, #edf1f4);
 }
 
 .history-item:last-child {
@@ -390,8 +398,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff2bd;
-  color: #17202a;
+  background: var(--app-soft-bg, #eef5f2);
+  color: var(--app-primary-dark, #226f63);
   font-size: 30rpx;
   font-weight: 800;
   flex-shrink: 0;
@@ -404,7 +412,7 @@ export default {
 
 .history-title {
   display: block;
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 30rpx;
   font-weight: 700;
   line-height: 40rpx;
@@ -421,30 +429,30 @@ export default {
   align-items: center;
   gap: 10rpx;
   margin-top: 8rpx;
-  color: #64748b;
+  color: var(--app-muted, #64748b);
   font-size: 24rpx;
   line-height: 34rpx;
 }
 
 .flow-arrow {
-  color: #b0bac5;
+  color: var(--app-faint, #b0bac5);
 }
 
 .history-amount {
-  color: #226f63;
+  color: var(--app-positive-color, #226f63);
   font-size: 30rpx;
   font-weight: 750;
   flex-shrink: 0;
 }
 
 .history-amount.negative {
-  color: #d94a62;
+  color: var(--app-liability-color, #d94a62);
 }
 
 .empty-card {
   padding: 44rpx 0;
   text-align: center;
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 26rpx;
 }
 
@@ -457,33 +465,41 @@ export default {
   transform: translateX(-50%);
   padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.96);
-  border-top: 1rpx solid #edf1f4;
+  background: var(--app-page-bg, #f3f6f8);
+  border-top: 1rpx solid var(--app-border, #edf1f4);
+  box-shadow: 0 -12rpx 28rpx rgba(15, 23, 42, 0.08);
+  z-index: 20;
 }
 
 .action-btn {
   flex: 1;
   margin: 0;
   height: 82rpx;
-  line-height: 82rpx;
+  line-height: normal;
   border-radius: 14rpx;
   font-size: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  padding: 0 8rpx;
 }
 
 .action-btn.secondary {
-  background: #fff7d7;
-  color: #17202a;
+  background: var(--app-soft-bg, #eef5f2);
+  color: var(--app-text, #17202a);
+  border: 1rpx solid var(--app-border, #edf1f4);
 }
 
 .action-btn.danger {
-  background: #ffffff;
-  color: #d94a62;
-  border: 1rpx solid #f0c3ca;
+  background: var(--app-card-bg-alt, #ffffff);
+  color: var(--app-danger, #d94a62);
+  border: 1rpx solid var(--app-border, #edf1f4);
 }
 
 .action-btn.danger.solid {
-  background: #d94a62;
-  color: #ffffff;
+  background: var(--app-danger, #d94a62);
+  color: #ffffff !important;
   border: none;
 }
 
@@ -505,7 +521,7 @@ export default {
   margin: 0 auto;
   padding: 38rpx 32rpx calc(42rpx + env(safe-area-inset-bottom));
   border-radius: 34rpx 34rpx 0 0;
-  background: #ffffff;
+  background: var(--app-card-bg, #ffffff);
   box-sizing: border-box;
 }
 
@@ -517,7 +533,7 @@ export default {
 }
 
 .sheet-title {
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 36rpx;
   line-height: 48rpx;
   font-weight: 800;
@@ -530,15 +546,15 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f5f7;
-  color: #17202a;
+  background: var(--app-soft-bg, #f3f5f7);
+  color: var(--app-text, #17202a);
   font-size: 44rpx;
   line-height: 52rpx;
 }
 
 .sheet-subtitle {
   display: block;
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 26rpx;
   line-height: 36rpx;
   margin-bottom: 34rpx;
@@ -550,13 +566,13 @@ export default {
   height: 96rpx;
   padding: 0 28rpx;
   border-radius: 18rpx;
-  background: #f6f8fb;
-  border: 2rpx solid #e6edf2;
+  background: var(--app-input-bg, #f6f8fb);
+  border: 2rpx solid var(--app-border, #e6edf2);
   margin-bottom: 34rpx;
 }
 
 .adjust-symbol {
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 34rpx;
   font-weight: 800;
   margin-right: 16rpx;
@@ -565,7 +581,7 @@ export default {
 .adjust-input {
   flex: 1;
   min-width: 0;
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 34rpx;
 }
 
@@ -573,15 +589,15 @@ export default {
   height: 88rpx;
   line-height: 88rpx;
   border-radius: 999rpx;
-  background: #17202a;
+  background: var(--app-primary, #e8c56d);
   color: #ffffff;
   font-size: 31rpx;
   font-weight: 700;
 }
 
 .adjust-submit[disabled] {
-  background: #e5e7eb;
-  color: #9ca3af;
+  background: var(--app-soft-bg, #e5e7eb);
+  color: var(--app-faint, #9ca3af);
 }
 
 @media (max-width: 480px) {

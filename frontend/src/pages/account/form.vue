@@ -1,8 +1,7 @@
 <template>
   <view class="container">
-    <view class="settings-hero">
-      <text class="settings-title">{{ isEdit ? '账户设置' : '新增账户' }}</text>
-      <text class="settings-subtitle">{{ isEdit ? '管理账户资料、币种和统计口径' : '设置账户基础信息和初始余额' }}</text>
+    <view class="page-head">
+      <text class="page-title">{{ isEdit ? '编辑账户' : '新增账户' }}</text>
     </view>
     <view class="account-kind-tabs">
       <view :class="['kind-tab', { active: accountKind === 'ASSET' }]" @click="selectKind('ASSET')">资产</view>
@@ -75,21 +74,7 @@
       <text class="group-title">统计与展示</text>
       <view class="form-item">
         <text class="form-label">计入净资产</text>
-        <switch :checked="form.includeInTotal" @change="handleSwitch('includeInTotal', $event)" color="#2EBD85" />
-      </view>
-
-      <view class="form-item">
-        <text class="form-label">颜色标识</text>
-        <view class="color-picker">
-          <view
-            v-for="color in colorOptions"
-            :key="color"
-            class="color-option"
-            :class="{ active: form.colorHex === color }"
-            :style="{ backgroundColor: color }"
-            @click="selectColor(color)"
-          />
-        </view>
+        <switch :checked="form.includeInTotal" @change="handleSwitch('includeInTotal', $event)" :color="switchColor" />
       </view>
 
       <view class="form-item">
@@ -117,8 +102,21 @@
 <script>
 import { useAssetStore } from '../../store/asset'
 import { useUserStore } from '../../store/user'
+import { getResolvedTheme, getThemeMode } from '../../utils/theme'
 
 const MONEY_PATTERN = /^(0|[1-9]\d{0,14})(\.\d{1,4})?$/
+
+const ACCOUNT_COLORS = {
+  BANK: '#5B8FF9',
+  CASH: '#2EBD85',
+  E_WALLET: '#00BCD4',
+  INVESTMENT: '#FFC107',
+  REAL_ESTATE: '#607D8B',
+  OTHER_ASSET: '#8B5CF6',
+  CREDIT_CARD: '#FF6B6B',
+  LOAN: '#FF6B6B',
+  OTHER_LIABILITY: '#FF6B6B'
+}
 
 export default {
   data() {
@@ -163,7 +161,6 @@ export default {
         { label: '英镑 GBP', value: 'GBP', rate: '9.10' }
       ],
       currencyIndex: 0,
-      colorOptions: ['#2EBD85', '#5B8FF9', '#FF6B6B', '#FFC107', '#00BCD4', '#607D8B']
     }
   },
   computed: {
@@ -175,6 +172,9 @@ export default {
     },
     filteredTypeOptions() {
       return this.typeOptions.filter(item => item.kind === this.accountKind)
+    },
+    switchColor() {
+      return getResolvedTheme(getThemeMode()).primary
     }
   },
   onLoad(options) {
@@ -268,10 +268,6 @@ export default {
       this.form[field] = event.detail.value
       this.markDirty()
     },
-    selectColor(color) {
-      this.form.colorHex = color
-      this.markDirty()
-    },
     selectKind(kind) {
       this.accountKind = kind
       this.form.isLiability = kind === 'LIABILITY'
@@ -322,9 +318,11 @@ export default {
       this.isSaving = true
       try {
         const assetStore = useAssetStore()
+        const autoColor = !this.isEdit ? (ACCOUNT_COLORS[this.form.accountType] || '#607D8B') : this.form.colorHex
         const data = {
           ...this.form,
           name: this.form.name.trim(),
+          colorHex: autoColor,
           currentBalance: Number(String(this.form.currentBalance).trim()),
           exchangeRateToCny: Number(String(this.form.exchangeRateToCny).trim()),
           remark: this.form.remark.trim()
@@ -371,34 +369,27 @@ export default {
   box-sizing: border-box;
 }
 
-.settings-hero {
-  padding: 10rpx 4rpx 26rpx;
+.page-head {
+  padding: 8rpx 4rpx 22rpx;
 }
 
-.settings-title {
+.page-title {
   display: block;
-  color: #17202a;
-  font-size: 42rpx;
-  line-height: 54rpx;
+  color: var(--app-text, #17202a);
+  font-size: 38rpx;
+  line-height: 48rpx;
   font-weight: 850;
-}
-
-.settings-subtitle {
-  display: block;
-  margin-top: 8rpx;
-  color: #7b8798;
-  font-size: 26rpx;
-  line-height: 38rpx;
 }
 
 .account-kind-tabs {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 6rpx;
-  padding: 6rpx;
+  gap: 8rpx;
+  padding: 8rpx;
   margin-bottom: 22rpx;
-  border-radius: 18rpx;
-  background: #eef2f5;
+  border-radius: 20rpx;
+  background: var(--app-soft-bg, #eef2f5);
+  border: 1rpx solid var(--app-border, #edf1f4);
 }
 
 .kind-tab {
@@ -407,33 +398,35 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--app-muted, #64748b);
   font-size: 29rpx;
   font-weight: 800;
 }
 
 .kind-tab.active {
-  background: #17202a;
+  background: var(--app-primary, #e8c56d);
   color: #ffffff;
+  box-shadow: 0 8rpx 18rpx rgba(0, 0, 0, 0.16);
 }
 
 .form-card {
-  background: #ffffff;
+  background: var(--app-card-bg, #ffffff);
   border-radius: 20rpx;
-  padding: 20rpx 28rpx 8rpx;
+  padding: 22rpx 28rpx 10rpx;
   margin-bottom: 24rpx;
-  border: 1rpx solid #edf1f4;
-  box-shadow: 0 10rpx 26rpx rgba(26, 42, 58, 0.045);
+  border: 1rpx solid var(--app-border, #edf1f4);
+  box-shadow: var(--app-shadow, 0 10rpx 26rpx rgba(26,42,58,0.045));
   position: relative;
   z-index: 1;
 }
 
 .group-title {
   display: block;
-  color: #7b8798;
-  font-size: 24rpx;
+  color: var(--app-primary-dark, #226f63);
+  font-size: 23rpx;
   line-height: 34rpx;
-  margin-bottom: 2rpx;
+  margin-bottom: 6rpx;
+  font-weight: 800;
 }
 
 .form-item {
@@ -441,19 +434,18 @@ export default {
   justify-content: space-between;
   align-items: center;
   min-height: 90rpx;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid #edf1f4;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid var(--app-border, #edf1f4);
+  gap: 22rpx;
 }
 
-.form-item:last-child {
-  border-bottom: none;
-}
+.form-item:last-child { border-bottom: none; }
 
 .field-hint {
   display: block;
-  margin: -4rpx 0 10rpx;
+  margin: -2rpx 0 10rpx;
   padding-left: 180rpx;
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 22rpx;
   line-height: 32rpx;
   text-align: right;
@@ -466,7 +458,7 @@ export default {
 
 .form-label {
   font-size: 30rpx;
-  color: #17202a;
+  color: var(--app-text, #17202a);
   width: 180rpx;
   flex-shrink: 0;
   font-weight: 650;
@@ -475,10 +467,15 @@ export default {
 .form-input {
   width: 0;
   flex: 1;
+  height: 56rpx;
+  padding: 0;
+  border: none !important;
+  background: transparent !important;
   text-align: right;
   font-size: 30rpx;
-  color: #334155;
+  color: var(--app-text, #17202a);
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .field-picker {
@@ -489,7 +486,7 @@ export default {
 }
 
 .remark-input {
-  color: #17202a;
+  color: var(--app-text, #17202a);
 }
 
 .form-picker {
@@ -497,48 +494,31 @@ export default {
   align-items: center;
   justify-content: flex-end;
   gap: 12rpx;
+  height: 56rpx;
+  padding: 0;
+  border: none !important;
+  background: transparent !important;
   font-size: 30rpx;
-  color: #334155;
+  color: var(--app-text, #17202a);
   min-width: 0;
-  min-height: 52rpx;
+  box-sizing: border-box;
   cursor: pointer;
   user-select: none;
 }
 
 .picker-arrow {
-  width: 44rpx;
-  height: 44rpx;
-  border-radius: 50%;
-  background: #f2f6f4;
-  color: #226f63;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+  color: var(--app-primary-dark, #226f63);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
-  line-height: 40rpx;
+  font-size: 34rpx;
+  line-height: 34rpx;
   font-weight: 300;
   flex-shrink: 0;
-}
-
-.color-picker {
-  display: flex;
-  gap: 16rpx;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  flex: 1;
-}
-
-.color-option {
-  width: 48rpx;
-  height: 48rpx;
-  border-radius: 14rpx;
-  border: 4rpx solid #ffffff;
-  box-shadow: 0 0 0 1rpx rgba(15, 23, 42, 0.08);
-}
-
-.color-option.active {
-  border-color: #ffffff;
-  box-shadow: 0 0 0 4rpx #17202a;
 }
 
 .btn-group {
@@ -546,7 +526,7 @@ export default {
 }
 
 .btn-save {
-  background: #17202a;
+  background: var(--app-primary, #e8c56d);
   color: #ffffff;
   border-radius: 999rpx;
   height: 88rpx;
@@ -556,9 +536,9 @@ export default {
 }
 
 .btn-delete {
-  background: #ffffff;
-  color: #d94a62;
-  border: 1rpx solid #f0c3ca;
+  background: var(--app-card-bg, #ffffff);
+  color: var(--app-danger, #d94a62);
+  border: 1rpx solid var(--app-border, #edf1f4);
   border-radius: 999rpx;
   height: 88rpx;
   line-height: 88rpx;

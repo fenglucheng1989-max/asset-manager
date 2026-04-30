@@ -4,7 +4,6 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -13,9 +12,10 @@ import java.math.BigDecimal;
 @Data
 public class TransactionBudgetDTO {
 
-    @NotBlank(message = "预算月份不能为空")
-    @Pattern(regexp = "^\\d{4}-\\d{2}$", message = "预算月份格式应为 yyyy-MM")
+    @NotBlank(message = "预算期间不能为空")
     private String budgetMonth;
+
+    private String periodType = "MONTHLY";
 
     private Long categoryId;
 

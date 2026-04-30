@@ -16,6 +16,7 @@ public class TransactionBudgetVO {
 
     private Long id;
     private String budgetMonth;
+    private String periodType;
     private Long categoryId;
     private String categoryName;
     private String budgetType;
@@ -26,5 +27,6 @@ public class TransactionBudgetVO {
     private BigDecimal warningRate;
     private Boolean warning;
     private String remark;
+    private Boolean subordinate;
     private LocalDateTime createdAt;
 }

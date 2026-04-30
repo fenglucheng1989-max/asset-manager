@@ -25,6 +25,24 @@
       }
     },
     {
+      "path": "pages/insight/health",
+      "style": {
+        "navigationBarTitleText": "财务健康"
+      }
+    },
+    {
+      "path": "pages/insight/summary",
+      "style": {
+        "navigationBarTitleText": "财务月报"
+      }
+    },
+    {
+      "path": "pages/insight/milestones",
+      "style": {
+        "navigationBarTitleText": "资产里程碑"
+      }
+    },
+    {
       "path": "pages/transaction/list",
       "style": {
         "navigationBarTitleText": "账本"
@@ -43,6 +61,12 @@
       }
     },
     {
+      "path": "pages/transaction/budget-form",
+      "style": {
+        "navigationBarTitleText": "预算编辑"
+      }
+    },
+    {
       "path": "pages/transaction/budget",
       "style": {
         "navigationBarTitleText": "预算"
@@ -53,11 +77,56 @@
       "style": {
         "navigationBarTitleText": "我的"
       }
+    },
+    {
+      "path": "pages/mine/snapshots",
+      "style": {
+        "navigationBarTitleText": "快照管理"
+      }
+    },
+    {
+      "path": "pages/mine/data",
+      "style": {
+        "navigationBarTitleText": "数据与同步"
+      }
+    },
+    {
+      "path": "pages/mine/settings",
+      "style": {
+        "navigationBarTitleText": "设置"
+      }
+    },
+    {
+      "path": "pages/mine/theme",
+      "style": {
+        "navigationBarTitleText": "视觉装扮"
+      }
+    },
+    {
+      "path": "pages/mine/account",
+      "style": {
+        "navigationBarTitleText": "账号设置"
+      }
+    },
+    {
+      "path": "pages/mine/security",
+      "style": {
+        "navigationBarTitleText": "安全账户"
+      }
+    },
+    {
+      "path": "pages/mine/about",
+      "style": {
+        "navigationBarTitleText": "关于与反馈"
+      }
     }
   ],
   "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#2EBD85",
+    "custom": true,
+    "color": "#b9aa83",
+    "selectedColor": "#d3a414",
+    "fontSize": "12px",
+    "height": "56px",
     "list": [
       {
         "pagePath": "pages/index/index",
@@ -66,6 +135,10 @@
       {
         "pagePath": "pages/transaction/list",
         "text": "账本"
+      },
+      {
+        "pagePath": "pages/transaction/budget",
+        "text": "预算"
       },
       {
         "pagePath": "pages/mine/mine",

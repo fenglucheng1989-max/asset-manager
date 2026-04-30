@@ -7,6 +7,7 @@ import com.yourcompany.assetmanager.mapper.AppUserMapper;
 import com.yourcompany.assetmanager.mapper.AssetSnapshotMapper;
 import com.yourcompany.assetmanager.service.AssetOverviewService;
 import com.yourcompany.assetmanager.service.AssetSnapshotService;
+import com.yourcompany.assetmanager.service.InsightService;
 import com.yourcompany.assetmanager.vo.AssetOverviewVO;
 import com.yourcompany.assetmanager.vo.AssetSnapshotVO;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class AssetSnapshotServiceImpl implements AssetSnapshotService {
     private final AssetSnapshotMapper assetSnapshotMapper;
     private final AssetOverviewService assetOverviewService;
     private final AppUserMapper appUserMapper;
+    private final InsightService insightService;
 
     @Override
     public AssetSnapshotVO createTodaySnapshot(Long userId) {
@@ -48,6 +50,7 @@ public class AssetSnapshotServiceImpl implements AssetSnapshotService {
                     .netWorth(overview.getNetWorth())
                     .build();
             assetSnapshotMapper.insert(snapshot);
+            insightService.detectNetWorthMilestones(userId, snapshot.getNetWorth(), today);
             return toVO(snapshot);
         }
 
@@ -55,6 +58,7 @@ public class AssetSnapshotServiceImpl implements AssetSnapshotService {
         existing.setTotalLiability(overview.getTotalLiability());
         existing.setNetWorth(overview.getNetWorth());
         assetSnapshotMapper.updateById(existing);
+        insightService.detectNetWorthMilestones(userId, existing.getNetWorth(), today);
         return toVO(existing);
     }
 

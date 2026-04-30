@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="container">
     <view class="trend-hero">
       <view class="hero-row">
@@ -103,7 +103,7 @@
               <text>{{ account.currency }} {{ Number(account.currentBalance || 0).toFixed(2) }}</text>
             </view>
             <view class="rank-track">
-              <view class="rank-bar" :style="{ width: account.rankPercent + '%', backgroundColor: account.colorHex || '#2EBD85' }"></view>
+              <view class="rank-bar" :style="{ width: account.rankPercent + '%', backgroundColor: getAccountAccent(index) }"></view>
             </view>
           </view>
         </view>
@@ -270,6 +270,15 @@ export default {
   methods: {
     formatMoney,
     getAccountTypeName,
+    getAccountAccent(index) {
+      const palette = [
+        'var(--app-primary, #2EBD85)',
+        'var(--app-accent, #f4c95d)',
+        'var(--app-positive-color, #226f63)',
+        'var(--app-muted, #64748b)'
+      ]
+      return palette[index % palette.length]
+    },
     buildMonthTrend() {
       const byMonth = new Map()
       this.snapshots.forEach(item => {
@@ -409,12 +418,12 @@ export default {
 .chart-section,
 .ranking-section,
 .history-section {
-  background: #ffffff;
-  border: 1rpx solid #edf1f4;
+  background: var(--app-card-bg, #ffffff);
+  border: 1rpx solid var(--app-border, #edf1f4);
   border-radius: 16rpx;
   padding: 30rpx;
   margin-bottom: 26rpx;
-  box-shadow: 0 12rpx 30rpx rgba(26, 42, 58, 0.06);
+  box-shadow: var(--app-shadow, 0 12rpx 30rpx rgba(26, 42, 58, 0.06));
 }
 
 .trend-chart {
@@ -427,7 +436,7 @@ export default {
   gap: 6rpx;
   padding: 6rpx;
   border-radius: 14rpx;
-  background: #f2f5f7;
+  background: var(--app-soft-bg, #f2f5f7);
   margin-bottom: 18rpx;
 }
 
@@ -437,15 +446,15 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--app-muted, #64748b);
   font-size: 26rpx;
   font-weight: 650;
 }
 
 .range-tab.active {
-  background: #17202a;
+  background: var(--app-primary, #e8c56d);
   color: #ffffff;
-  box-shadow: 0 8rpx 18rpx rgba(23, 32, 42, 0.16);
+  box-shadow: 0 8rpx 18rpx rgba(0, 0, 0, 0.18);
 }
 
 .line-chart {
@@ -461,7 +470,7 @@ export default {
   left: 0;
   right: 0;
   height: 1rpx;
-  background: #e2e8ef;
+  background: var(--app-border, #e2e8ef);
 }
 
 .chart-grid-line.top {
@@ -480,7 +489,7 @@ export default {
   position: absolute;
   height: 4rpx;
   border-radius: 999rpx;
-  background: #2ebd85;
+  background: var(--app-primary, #2ebd85);
   transform-origin: 0 50%;
   box-shadow: 0 4rpx 10rpx rgba(46, 189, 133, 0.2);
 }
@@ -492,8 +501,8 @@ export default {
   margin-left: -9rpx;
   margin-bottom: -9rpx;
   border-radius: 50%;
-  background: #f4c95d;
-  border: 4rpx solid #ffffff;
+  background: var(--app-accent, #f4c95d);
+  border: 4rpx solid var(--app-card-bg, #ffffff);
   box-shadow: 0 2rpx 10rpx rgba(23, 32, 42, 0.18);
 }
 
@@ -508,7 +517,7 @@ export default {
   margin: 10rpx 8rpx 0;
   padding: 18rpx 20rpx;
   border-radius: 14rpx;
-  background: #f6f8fb;
+  background: var(--app-input-bg, #f6f8fb);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -517,13 +526,13 @@ export default {
 
 .tooltip-title,
 .tooltip-sub {
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 23rpx;
 }
 
 .tooltip-value {
   flex: 1;
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 28rpx;
   font-weight: 800;
 }
@@ -535,13 +544,13 @@ export default {
 }
 
 .chart-month {
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 20rpx;
   line-height: 28rpx;
 }
 
 .axis-label text {
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 20rpx;
   line-height: 28rpx;
 }
@@ -556,7 +565,7 @@ export default {
   align-items: flex-start;
   gap: 18rpx;
   padding: 24rpx 0;
-  border-bottom: 1rpx solid #edf1f4;
+  border-bottom: 1rpx solid var(--app-border, #edf1f4);
 }
 
 .ranking-item:last-child {
@@ -568,8 +577,8 @@ export default {
   width: 48rpx;
   height: 48rpx;
   border-radius: 14rpx;
-  background: #f2f6f4;
-  color: #226f63;
+  background: var(--app-soft-bg, #f2f6f4);
+  color: var(--app-primary-dark, #226f63);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -592,27 +601,27 @@ export default {
 
 .rank-row.sub {
   margin-top: 6rpx;
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 23rpx;
   line-height: 32rpx;
 }
 
 .rank-row.currency {
   margin-top: 2rpx;
-  color: #94a3b8;
+  color: var(--app-faint, #94a3b8);
   font-size: 22rpx;
   line-height: 30rpx;
 }
 
 .rank-name {
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 29rpx;
   line-height: 38rpx;
   font-weight: 750;
 }
 
 .rank-amount {
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 28rpx;
   line-height: 38rpx;
   font-weight: 800;
@@ -620,14 +629,14 @@ export default {
 }
 
 .rank-amount.liability {
-  color: #d94a62;
+  color: var(--app-liability-color, #d94a62);
 }
 
 .rank-track {
   height: 12rpx;
   margin-top: 16rpx;
   border-radius: 999rpx;
-  background: #edf2f5;
+  background: var(--app-soft-bg, #edf2f5);
   overflow: hidden;
 }
 
@@ -637,24 +646,31 @@ export default {
 }
 
 .trend-hero {
-  background: linear-gradient(135deg, #14202d 0%, #20384a 58%, #22564d 100%);
-  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  background: var(--app-outfit-header-bg, var(--app-hero-gradient, linear-gradient(135deg, #14202d 0%, #20384a 58%, #22564d 100%)));
+  color: var(--app-outfit-header-text, var(--app-hero-text, #ffffff));
+}
+
+.trend-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--app-outfit-header-pattern, none);
+  opacity: 0.86;
+  pointer-events: none;
 }
 
 .hero-row,
-.hero-meta,
-.section-header,
-.history-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 22rpx;
+.hero-meta {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-label,
 .meta-label {
   display: block;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--app-outfit-header-sub, var(--app-hero-sub, rgba(255, 255, 255, 0.72)));
   font-size: 24rpx;
   line-height: 34rpx;
 }
@@ -662,7 +678,7 @@ export default {
 .hero-value {
   display: block;
   margin-top: 14rpx;
-  color: #f4c95d;
+  color: var(--app-outfit-header-accent, var(--app-hero-accent, #f4c95d));
   font-size: 58rpx;
   line-height: 72rpx;
   font-weight: 800;
@@ -676,27 +692,37 @@ export default {
   line-height: 68rpx;
   padding: 0 24rpx;
   border-radius: 14rpx;
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  background: var(--app-outfit-header-accent, rgba(255, 255, 255, 0.14));
+  color: var(--app-outfit-header-text, var(--app-hero-text, #f4c95d));
   font-size: 26rpx;
+  font-weight: 700;
+  opacity: 0.9;
 }
 
 .hero-meta {
   margin-top: 30rpx;
   padding-top: 24rpx;
-  border-top: 1rpx solid rgba(255, 255, 255, 0.14);
+  border-top: 1rpx solid var(--app-section-bg, rgba(255, 255, 255, 0.14));
 }
 
 .meta-value {
   display: block;
   margin-top: 6rpx;
-  color: #ffffff;
+  color: var(--app-outfit-header-sub, var(--app-hero-sub, rgba(255, 255, 255, 0.72)));
   font-size: 30rpx;
   font-weight: 700;
 }
 
 .meta-value.liability {
-  color: #ff9aa9;
+  color: var(--app-liability-color, #ff9aa9);
+}
+
+.section-header,
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22rpx;
 }
 
 .section-header {
@@ -705,13 +731,13 @@ export default {
 }
 
 .section-title {
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 32rpx;
   font-weight: 700;
 }
 
 .section-subtitle {
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 24rpx;
   line-height: 34rpx;
 }
@@ -719,11 +745,11 @@ export default {
 .empty-card {
   padding: 24rpx;
   border-radius: 14rpx;
-  background: #f6f8fb;
+  background: var(--app-input-bg, #f6f8fb);
 }
 
 .empty-card {
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 26rpx;
   line-height: 38rpx;
 }
@@ -735,7 +761,7 @@ export default {
 
 .history-item {
   padding: 24rpx 0;
-  border-bottom: 1rpx solid #edf1f4;
+  border-bottom: 1rpx solid var(--app-border, #edf1f4);
 }
 
 .history-item:last-child {
@@ -745,7 +771,7 @@ export default {
 
 .history-date {
   display: block;
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 28rpx;
   font-weight: 700;
 }
@@ -753,14 +779,14 @@ export default {
 .history-sub {
   display: block;
   margin-top: 8rpx;
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 23rpx;
   line-height: 34rpx;
 }
 
 .history-value {
   flex-shrink: 0;
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 30rpx;
   font-weight: 800;
 }
@@ -770,8 +796,8 @@ export default {
   height: 76rpx;
   line-height: 76rpx;
   border-radius: 999rpx;
-  background: #f6f8fb;
-  color: #226f63;
+  background: var(--app-soft-bg, #f6f8fb);
+  color: var(--app-primary-dark, #226f63);
   font-size: 28rpx;
 }
 </style>

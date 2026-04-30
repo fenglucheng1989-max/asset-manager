@@ -169,20 +169,30 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public List<TransactionBudgetVO> listBudgets(Long userId, String month) {
-        String safeMonth = normalizeMonth(month);
-        List<TransactionBudget> budgets = transactionBudgetMapper.selectList(new LambdaQueryWrapper<TransactionBudget>()
-                .eq(TransactionBudget::getUserId, userId)
-                .eq(TransactionBudget::getBudgetMonth, safeMonth)
-                .orderByAsc(TransactionBudget::getCategoryId)
-                .orderByAsc(TransactionBudget::getId));
-        return toBudgetVOs(userId, safeMonth, budgets);
+    public List<TransactionBudgetVO> listBudgets(Long userId, String periodType, String periodKey, String month) {
+        String safeType = periodType == null || periodType.isBlank() ? null : normalizePeriodType(periodType);
+        LambdaQueryWrapper<TransactionBudget> wrapper = new LambdaQueryWrapper<TransactionBudget>()
+                .eq(TransactionBudget::getUserId, userId);
+        if (safeType != null) {
+            wrapper.eq(TransactionBudget::getPeriodType, safeType);
+        }
+        if (periodKey != null && !periodKey.isBlank()) {
+            wrapper.eq(TransactionBudget::getBudgetMonth, periodKey.trim());
+        } else if (month != null && !month.isBlank()) {
+            wrapper.eq(TransactionBudget::getBudgetMonth, month.trim());
+        }
+        List<TransactionBudget> budgets = transactionBudgetMapper.selectList(
+                wrapper.orderByDesc(TransactionBudget::getBudgetMonth)
+                        .orderByAsc(TransactionBudget::getCategoryId)
+                        .orderByAsc(TransactionBudget::getId));
+        return toBudgetVOs(userId, budgets);
     }
 
     @Override
     @Transactional
     public TransactionBudgetVO saveBudget(Long userId, TransactionBudgetDTO dto) {
-        String month = normalizeMonth(dto.getBudgetMonth());
+        String periodType = normalizePeriodType(dto.getPeriodType());
+        String periodKey = normalizePeriodKey(dto.getBudgetMonth(), periodType);
         Long categoryId = dto.getCategoryId();
         if (categoryId != null) {
             getVisibleCategory(userId, categoryId);
@@ -190,7 +200,8 @@ public class TransactionServiceImpl implements TransactionService {
         String budgetType = normalizeBudgetType(dto.getBudgetType());
         LambdaQueryWrapper<TransactionBudget> budgetWrapper = new LambdaQueryWrapper<TransactionBudget>()
                 .eq(TransactionBudget::getUserId, userId)
-                .eq(TransactionBudget::getBudgetMonth, month)
+                .eq(TransactionBudget::getPeriodType, periodType)
+                .eq(TransactionBudget::getBudgetMonth, periodKey)
                 .eq(TransactionBudget::getBudgetType, budgetType);
         if (categoryId == null) {
             budgetWrapper.isNull(TransactionBudget::getCategoryId);
@@ -201,7 +212,8 @@ public class TransactionServiceImpl implements TransactionService {
         if (budget == null) {
             budget = TransactionBudget.builder()
                     .userId(userId)
-                    .budgetMonth(month)
+                    .budgetMonth(periodKey)
+                    .periodType(periodType)
                     .categoryId(categoryId)
                     .budgetType(budgetType)
                     .build();
@@ -214,7 +226,7 @@ public class TransactionServiceImpl implements TransactionService {
         } else {
             transactionBudgetMapper.updateById(budget);
         }
-        return toBudgetVOs(userId, month, List.of(budget)).get(0);
+        return toBudgetVOs(userId, List.of(budget)).get(0);
     }
 
     @Override
@@ -285,7 +297,14 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     private void adjustAccount(Long userId, Long accountId, BigDecimal delta, String changeType) {
-        AssetAccount account = getOwnedAccount(userId, accountId);
+        AssetAccount account = assetAccountMapper.selectOne(
+                new LambdaQueryWrapper<AssetAccount>()
+                        .eq(AssetAccount::getId, accountId)
+                        .eq(AssetAccount::getUserId, userId));
+        if (account == null) {
+            if (changeType.startsWith("REVERSE_")) return;
+            throw new BusinessException(404, "账户不存在");
+        }
         BigDecimal beforeBalance = account.getCurrentBalance();
         account.setCurrentBalance(MoneyUtils.add(account.getCurrentBalance(), delta));
         assetAccountMapper.updateById(account);
@@ -403,11 +422,11 @@ public class TransactionServiceImpl implements TransactionService {
                 .build();
     }
 
-    private List<TransactionBudgetVO> toBudgetVOs(Long userId, String month, List<TransactionBudget> budgets) {
+    private List<TransactionBudgetVO> toBudgetVOs(Long userId, List<TransactionBudget> budgets) {
         Map<Long, TransactionCategory> categories = transactionCategoryMapper.selectList(null).stream()
                 .collect(Collectors.toMap(TransactionCategory::getId, Function.identity(), (a, b) -> a));
-        return budgets.stream().map(budget -> {
-            BigDecimal used = usedBudgetAmount(userId, month, budget.getCategoryId(), budget.getBudgetType());
+        List<TransactionBudgetVO> vos = budgets.stream().map(budget -> {
+            BigDecimal used = usedBudgetAmount(userId, budget.getBudgetMonth(), budget.getPeriodType(), budget.getCategoryId(), budget.getBudgetType());
             BigDecimal usageRate = budget.getAmount().compareTo(BigDecimal.ZERO) == 0
                     ? BigDecimal.ZERO
                     : used.divide(budget.getAmount(), 4, RoundingMode.HALF_UP);
@@ -415,6 +434,7 @@ public class TransactionServiceImpl implements TransactionService {
             return TransactionBudgetVO.builder()
                     .id(budget.getId())
                     .budgetMonth(budget.getBudgetMonth())
+                    .periodType(budget.getPeriodType())
                     .categoryId(budget.getCategoryId())
                     .categoryName(category == null ? "全部支出" : category.getName())
                     .budgetType(budget.getBudgetType())
@@ -428,21 +448,70 @@ public class TransactionServiceImpl implements TransactionService {
                     .createdAt(budget.getCreatedAt())
                     .build();
         }).toList();
+
+        // 同一周期内存在"全部支出"时，标记其它分类预算为从属预算
+        Map<String, Boolean> hasGlobal = new java.util.HashMap<>();
+        for (TransactionBudgetVO vo : vos) {
+            if (vo.getCategoryId() == null) {
+                String key = (vo.getPeriodType() != null ? vo.getPeriodType() : "MONTHLY") + "|" + vo.getBudgetMonth();
+                hasGlobal.put(key, true);
+            }
+        }
+        if (!hasGlobal.isEmpty()) {
+            for (TransactionBudgetVO vo : vos) {
+                if (vo.getCategoryId() != null) {
+                    String key = (vo.getPeriodType() != null ? vo.getPeriodType() : "MONTHLY") + "|" + vo.getBudgetMonth();
+                    if (hasGlobal.containsKey(key)) {
+                        vo.setSubordinate(true);
+                    }
+                }
+            }
+        }
+
+        return vos;
     }
 
-    private BigDecimal usedBudgetAmount(Long userId, String month, Long categoryId, String budgetType) {
-        YearMonth ym = YearMonth.parse(month);
+    private BigDecimal usedBudgetAmount(Long userId, String periodKey, String periodType, Long categoryId, String budgetType) {
+        LocalDateTime[] range = resolvePeriodRange(periodKey, periodType);
         LambdaQueryWrapper<TransactionRecord> wrapper = new LambdaQueryWrapper<TransactionRecord>()
                 .eq(TransactionRecord::getUserId, userId)
                 .eq(TransactionRecord::getTransactionType, budgetType)
-                .ge(TransactionRecord::getOccurredAt, ym.atDay(1).atStartOfDay())
-                .lt(TransactionRecord::getOccurredAt, ym.plusMonths(1).atDay(1).atStartOfDay());
+                .ge(TransactionRecord::getOccurredAt, range[0])
+                .lt(TransactionRecord::getOccurredAt, range[1]);
         if (categoryId != null) {
             wrapper.eq(TransactionRecord::getCategoryId, categoryId);
         }
         return transactionRecordMapper.selectList(wrapper).stream()
                 .map(record -> MoneyUtils.toBaseCurrency(record.getAmount(), record.getExchangeRateToCny()))
                 .reduce(BigDecimal.ZERO, MoneyUtils::add);
+    }
+
+    private LocalDateTime[] resolvePeriodRange(String periodKey, String periodType) {
+        if ("YEARLY".equals(periodType)) {
+            int year = Integer.parseInt(periodKey);
+            return new LocalDateTime[]{
+                    LocalDateTime.of(year, 1, 1, 0, 0),
+                    LocalDateTime.of(year + 1, 1, 1, 0, 0)
+            };
+        }
+        if ("WEEKLY".equals(periodType)) {
+            // periodKey format: yyyyWww, e.g. "2026W18"
+            int year = Integer.parseInt(periodKey.substring(0, 4));
+            int week = Integer.parseInt(periodKey.substring(5));
+            LocalDate jan1 = LocalDate.of(year, 1, 1);
+            LocalDate weekStart = jan1.with(java.time.temporal.WeekFields.ISO.weekOfYear(), week)
+                    .with(java.time.DayOfWeek.MONDAY);
+            return new LocalDateTime[]{
+                    weekStart.atStartOfDay(),
+                    weekStart.plusWeeks(1).atStartOfDay()
+            };
+        }
+        // MONTHLY (default)
+        YearMonth ym = YearMonth.parse(periodKey);
+        return new LocalDateTime[]{
+                ym.atDay(1).atStartOfDay(),
+                ym.plusMonths(1).atDay(1).atStartOfDay()
+        };
     }
 
     private BigDecimal sumBase(List<TransactionRecord> records, String type) {
@@ -512,6 +581,44 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BusinessException(400, "不支持的预算类型");
         }
         return normalized;
+    }
+
+    private String normalizePeriodType(String type) {
+        String normalized = type == null || type.isBlank() ? "MONTHLY" : type.trim().toUpperCase();
+        if (!List.of("MONTHLY", "WEEKLY", "YEARLY").contains(normalized)) {
+            throw new BusinessException(400, "不支持的预算周期类型，支持 MONTHLY/WEEKLY/YEARLY");
+        }
+        return normalized;
+    }
+
+    private String normalizePeriodKey(String key, String periodType) {
+        if (key == null || key.isBlank()) {
+            if ("YEARLY".equals(periodType)) {
+                return String.valueOf(YearMonth.now().getYear());
+            }
+            if ("WEEKLY".equals(periodType)) {
+                LocalDate now = LocalDate.now();
+                int week = now.get(java.time.temporal.WeekFields.ISO.weekOfYear());
+                return String.format("%dW%02d", now.getYear(), week);
+            }
+            return YearMonth.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        }
+        String trimmed = key.trim();
+        if ("YEARLY".equals(periodType)) {
+            if (!trimmed.matches("^\\d{4}$")) throw new BusinessException(400, "年度预算期间格式应为 yyyy");
+            return trimmed;
+        }
+        if ("WEEKLY".equals(periodType)) {
+            if (!trimmed.matches("^\\d{4}W\\d{2}$")) throw new BusinessException(400, "周预算期间格式应为 yyyyWww");
+            return trimmed;
+        }
+        // MONTHLY
+        try {
+            YearMonth.parse(trimmed);
+            return trimmed;
+        } catch (Exception e) {
+            throw new BusinessException(400, "月度预算期间格式应为 yyyy-MM");
+        }
     }
 
     private String normalizeMonth(String month) {

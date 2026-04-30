@@ -27,6 +27,8 @@ public class TransactionBudget {
 
     private String budgetMonth;
 
+    private String periodType;
+
     private Long categoryId;
 
     private String budgetType;

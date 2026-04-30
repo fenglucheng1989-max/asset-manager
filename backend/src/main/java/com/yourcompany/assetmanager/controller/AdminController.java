@@ -2,13 +2,16 @@ package com.yourcompany.assetmanager.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.yourcompany.assetmanager.dto.AssetAccountDTO;
+import com.yourcompany.assetmanager.dto.LegalDocumentDTO;
 import com.yourcompany.assetmanager.entity.AppUser;
 import com.yourcompany.assetmanager.entity.AssetAccount;
+import com.yourcompany.assetmanager.entity.LegalDocument;
 import com.yourcompany.assetmanager.entity.TransactionCategory;
 import com.yourcompany.assetmanager.entity.TransactionRecord;
 import com.yourcompany.assetmanager.exception.BusinessException;
 import com.yourcompany.assetmanager.mapper.AppUserMapper;
 import com.yourcompany.assetmanager.mapper.AssetAccountMapper;
+import com.yourcompany.assetmanager.mapper.LegalDocumentMapper;
 import com.yourcompany.assetmanager.mapper.TransactionCategoryMapper;
 import com.yourcompany.assetmanager.mapper.TransactionRecordMapper;
 import com.yourcompany.assetmanager.service.AssetOverviewService;
@@ -18,9 +21,11 @@ import com.yourcompany.assetmanager.vo.AdminDashboardVO;
 import com.yourcompany.assetmanager.vo.AdminUserVO;
 import com.yourcompany.assetmanager.vo.ApiResponse;
 import com.yourcompany.assetmanager.vo.AssetOverviewVO;
+import com.yourcompany.assetmanager.vo.LegalDocumentVO;
 import com.yourcompany.assetmanager.vo.TransactionRecordVO;
 import com.yourcompany.assetmanager.vo.TransactionReportVO;
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -49,18 +54,21 @@ public class AdminController extends BaseUserController {
     private final AssetAccountMapper assetAccountMapper;
     private final TransactionRecordMapper transactionRecordMapper;
     private final TransactionCategoryMapper transactionCategoryMapper;
+    private final LegalDocumentMapper legalDocumentMapper;
     private final AssetOverviewService assetOverviewService;
 
     public AdminController(AppUserMapper appUserMapper,
                            AssetAccountMapper assetAccountMapper,
                            TransactionRecordMapper transactionRecordMapper,
                            TransactionCategoryMapper transactionCategoryMapper,
+                           LegalDocumentMapper legalDocumentMapper,
                            AssetOverviewService assetOverviewService) {
         super(appUserMapper);
         this.appUserMapper = appUserMapper;
         this.assetAccountMapper = assetAccountMapper;
         this.transactionRecordMapper = transactionRecordMapper;
         this.transactionCategoryMapper = transactionCategoryMapper;
+        this.legalDocumentMapper = legalDocumentMapper;
         this.assetOverviewService = assetOverviewService;
     }
 
@@ -248,6 +256,55 @@ public class AdminController extends BaseUserController {
                 .build());
     }
 
+    @GetMapping("/legal-documents")
+    public ApiResponse<List<LegalDocumentVO>> legalDocuments(Authentication authentication,
+                                                            @RequestParam(required = false) String type) {
+        requireAdmin(authentication);
+        LambdaQueryWrapper<LegalDocument> wrapper = new LambdaQueryWrapper<LegalDocument>()
+                .orderByAsc(LegalDocument::getDocType)
+                .orderByDesc(LegalDocument::getEffectiveDate)
+                .orderByDesc(LegalDocument::getId);
+        if (type != null && !type.isBlank()) {
+            wrapper.eq(LegalDocument::getDocType, normalizeDocType(type));
+        }
+        return ApiResponse.success(legalDocumentMapper.selectList(wrapper).stream().map(this::toLegalDocumentVO).toList());
+    }
+
+    @PostMapping("/legal-documents")
+    public ApiResponse<LegalDocumentVO> createLegalDocument(Authentication authentication,
+                                                           @Valid @RequestBody LegalDocumentDTO dto) {
+        requireAdmin(authentication);
+        LegalDocument document = LegalDocument.builder()
+                .docType(normalizeDocType(dto.getDocType()))
+                .title(dto.getTitle().trim())
+                .version(dto.getVersion().trim())
+                .effectiveDate(dto.getEffectiveDate())
+                .content(dto.getContent().trim())
+                .enabled(Boolean.TRUE.equals(dto.getEnabled()))
+                .build();
+        legalDocumentMapper.insert(document);
+        return ApiResponse.success(toLegalDocumentVO(document));
+    }
+
+    @PutMapping("/legal-documents/{id}")
+    public ApiResponse<LegalDocumentVO> updateLegalDocument(Authentication authentication,
+                                                           @PathVariable Long id,
+                                                           @Valid @RequestBody LegalDocumentDTO dto) {
+        requireAdmin(authentication);
+        LegalDocument document = legalDocumentMapper.selectById(id);
+        if (document == null) {
+            throw new BusinessException(404, "法律文档不存在");
+        }
+        document.setDocType(normalizeDocType(dto.getDocType()));
+        document.setTitle(dto.getTitle().trim());
+        document.setVersion(dto.getVersion().trim());
+        document.setEffectiveDate(dto.getEffectiveDate());
+        document.setContent(dto.getContent().trim());
+        document.setEnabled(Boolean.TRUE.equals(dto.getEnabled()));
+        legalDocumentMapper.updateById(document);
+        return ApiResponse.success(toLegalDocumentVO(document));
+    }
+
     private AdminUserVO toAdminUser(AppUser user) {
         AssetOverviewVO overview = assetOverviewService.getOverview(user.getId());
         return AdminUserVO.builder()
@@ -312,5 +369,26 @@ public class AdminController extends BaseUserController {
                     .createdAt(record.getCreatedAt())
                     .build();
         }).toList();
+    }
+
+    private String normalizeDocType(String type) {
+        String normalized = type == null ? "" : type.trim().toUpperCase();
+        return switch (normalized) {
+            case "TERMS", "PRIVACY" -> normalized;
+            default -> throw new BusinessException(400, "不支持的文档类型");
+        };
+    }
+
+    private LegalDocumentVO toLegalDocumentVO(LegalDocument document) {
+        return LegalDocumentVO.builder()
+                .id(document.getId())
+                .docType(document.getDocType())
+                .title(document.getTitle())
+                .version(document.getVersion())
+                .effectiveDate(document.getEffectiveDate())
+                .content(document.getContent())
+                .enabled(document.getEnabled())
+                .updatedAt(document.getUpdatedAt())
+                .build();
     }
 }

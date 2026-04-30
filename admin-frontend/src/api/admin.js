@@ -35,3 +35,15 @@ export function getTransactions(params) {
 export function getTransactionReport(params) {
   return request.get('/admin/transactions/report', { params })
 }
+
+export function getLegalDocuments(params) {
+  return request.get('/admin/legal-documents', { params })
+}
+
+export function createLegalDocument(data) {
+  return request.post('/admin/legal-documents', data)
+}
+
+export function updateLegalDocument(id, data) {
+  return request.put(`/admin/legal-documents/${id}`, data)
+}

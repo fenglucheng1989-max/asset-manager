@@ -1,7 +1,7 @@
 <template>
-  <view class="container">
-    <view class="ledger-toolbar">
-      <view class="date-nav">
+  <view class="container" :style="themeVars">
+    <view class="hero-card">
+      <view class="hero-date-row">
         <button class="date-nav-btn" @click="changePeriod(-1)">‹</button>
         <picker :range="periodOptions" range-key="label" :value="periodIndex" @change="selectPeriodMode">
           <view class="date-title">
@@ -11,58 +11,36 @@
         </picker>
         <button class="date-nav-btn" @click="changePeriod(1)">›</button>
       </view>
-      <view class="filter-row">
-        <scroll-view class="type-scroll" scroll-x>
-          <view class="type-chip-row">
-            <view v-for="item in typeFilters" :key="item.value" :class="['type-chip', { active: filterType === item.value }]" @click="setType(item.value)">
-              <text>{{ item.label }}</text>
-            </view>
+      <view class="hero-overview">
+        <text class="hero-label">{{ periodTitle }}收支净额</text>
+        <text :class="['hero-value', { negative: Number(report.net || 0) < 0 }]">{{ formatSignedMoney(report.net) }}</text>
+        <view class="hero-stats">
+          <view>
+            <text class="stat-label">流入</text>
+            <text class="stat-value income">{{ formatMoney(report.income) }}</text>
           </view>
-        </scroll-view>
-        <picker :disabled="isCategoryDisabled" :range="categoryOptions" range-key="name" :value="categoryIndex" @change="selectCategory">
-          <view :class="['category-pill', { disabled: isCategoryDisabled }]">
-            <text>{{ isCategoryDisabled ? '无分类' : selectedCategoryName }}</text>
-            <text class="category-arrow">›</text>
+          <view>
+            <text class="stat-label">流出</text>
+            <text class="stat-value expense">{{ formatMoney(report.expense) }}</text>
           </view>
-        </picker>
-      </view>
-    </view>
-
-    <view class="hero-card">
-      <view class="hero-top">
-        <view>
-          <text class="hero-label">{{ periodTitle }}收支净额</text>
-          <text :class="['hero-value', { negative: Number(report.net || 0) < 0 }]">{{ formatSignedMoney(report.net) }}</text>
-        </view>
-        <button class="hero-action" @click.stop="goCreate">记一笔</button>
-      </view>
-      <view class="hero-stats">
-        <view>
-          <text class="stat-label">流入</text>
-          <text class="stat-value income">{{ formatMoney(report.income) }}</text>
-        </view>
-        <view>
-          <text class="stat-label">流出</text>
-          <text class="stat-value expense">{{ formatMoney(report.expense) }}</text>
         </view>
       </view>
     </view>
 
-    <view class="budget-summary-card" :class="{ warning: budgetStatusLevel === 'warning', danger: budgetStatusLevel === 'danger' }" @click="goBudget">
-      <view class="budget-summary-head">
-        <view>
-          <text class="budget-title">月度预算</text>
-          <text class="budget-subtitle">{{ budgetStatusText }}</text>
+    <view class="filter-strip">
+      <scroll-view class="type-scroll" scroll-x>
+        <view class="type-chip-row">
+          <view v-for="item in typeFilters" :key="item.value" :class="['type-chip', { active: filterType === item.value }]" @click="setType(item.value)">
+            <text>{{ item.label }}</text>
+          </view>
         </view>
-        <text class="budget-action">›</text>
-      </view>
-      <view class="budget-progress-track">
-        <view class="budget-progress-fill" :style="{ width: budgetProgressPercent }"></view>
-      </view>
-      <view class="budget-summary-foot">
-        <text>{{ budgetUsageText }}</text>
-        <text>{{ budgetBalanceText }}</text>
-      </view>
+      </scroll-view>
+      <picker :disabled="isCategoryDisabled" :range="categoryOptions" range-key="name" :value="categoryIndex" @change="selectCategory">
+        <view :class="['category-pill', { disabled: isCategoryDisabled }]">
+          <text>{{ isCategoryDisabled ? '无分类' : selectedCategoryName }}</text>
+          <text class="category-arrow">›</text>
+        </view>
+      </picker>
     </view>
 
     <view class="panel-card structure-card" v-if="hasStructureStats">
@@ -81,9 +59,9 @@
           </view>
         </view>
         <view class="pie-legend">
-          <view class="legend-item" v-for="item in activeStructureStats.slice(0, 5)" :key="`${structureType}-${item.categoryName}`">
+          <view class="legend-item" v-for="(item, index) in activeStructureStats.slice(0, 5)" :key="`${structureType}-${item.categoryName}`">
             <view class="legend-left">
-              <text class="legend-dot" :style="{ backgroundColor: item.colorHex || defaultStructureColor }"></text>
+              <text class="legend-dot" :style="{ backgroundColor: getStructureColor(index) }"></text>
               <text class="legend-name">{{ item.categoryName }}</text>
             </view>
             <text class="legend-percent">{{ formatPercent(item.percent) }}</text>
@@ -94,20 +72,43 @@
 
     <view class="panel-card">
       <view class="section-header">
-        <text class="section-title">收支明细</text>
-        <text class="section-subtitle">{{ records.length }} 条</text>
+        <view class="section-title-group">
+          <text class="section-title">收支明细</text>
+          <text class="section-subtitle">{{ records.length }} 条</text>
+        </view>
+        <button class="section-add-btn" @click="goCreate">
+          <text>+</text>
+        </button>
       </view>
 
       <view v-if="records.length > 0" class="record-list">
-        <view class="record-item" v-for="item in records" :key="item.id" @click="goEdit(item)" @longpress="confirmDelete(item)">
-          <view class="record-icon" :class="item.transactionType.toLowerCase()">
-            <text>{{ getTypeSymbol(item.transactionType) }}</text>
+        <view
+          class="record-row"
+          :class="{ swiped: swipedRecordId === item.id }"
+          v-for="item in records"
+          :key="item.id"
+        >
+          <view class="record-delete-underlay" @click.stop="confirmDelete(item)">
+            <text>删除</text>
           </view>
-          <view class="record-copy">
-            <text class="record-title">{{ item.categoryName || getTypeName(item.transactionType) }}</text>
-            <text class="record-sub">{{ getRecordSub(item) }}</text>
+          <view
+            class="record-item"
+            :style="{ transform: swipedRecordId === item.id ? 'translateX(-140rpx)' : 'translateX(0)' }"
+            @click="handleRecordClick(item)"
+            @touchstart="handleRecordTouchStart(item, $event)"
+            @touchmove="handleRecordTouchMove(item, $event)"
+            @touchend="handleRecordTouchEnd(item)"
+            @longpress="confirmDelete(item)"
+          >
+            <view class="record-icon" :class="recordIconClass(item)">
+              <view class="record-symbol"></view>
+            </view>
+            <view class="record-copy">
+              <text class="record-title">{{ getRecordTitle(item) }}</text>
+              <text class="record-sub">{{ getRecordSub(item) }}</text>
+            </view>
+            <text :class="['record-amount', amountClass(item.transactionType)]">{{ getRecordAmount(item) }}</text>
           </view>
-          <text :class="['record-amount', getAmountClass(item.transactionType)]">{{ getRecordAmount(item) }}</text>
         </view>
       </view>
 
@@ -115,19 +116,23 @@
         <text>当前筛选下暂无记录</text>
       </view>
     </view>
+
+    <custom-tab-bar />
   </view>
 </template>
 
 <script>
+import CustomTabBar from '../../custom-tab-bar/index.vue'
 import { useTransactionStore } from '../../store/transaction'
 import { formatMoney } from '../../utils/money'
+import { getThemeMode, getThemeVars } from '../../utils/theme'
 
 export default {
+  components: { CustomTabBar },
   data() {
     return {
       records: [],
       categories: [],
-      budgets: [],
       report: { income: 0, expense: 0, net: 0, categoryStats: [], incomeCategoryStats: [], trend: [] },
       anchorDate: '',
       currentMonth: '',
@@ -146,7 +151,12 @@ export default {
         { label: '收入', value: 'INCOME' },
         { label: '转账', value: 'TRANSFER' }
       ],
-      isLoading: false
+      isLoading: false,
+      swipeTouchStartX: 0,
+      swipeTouchStartY: 0,
+      swipeTouchRecordId: null,
+      swipedRecordId: null,
+      themeVars: getThemeVars()
     }
   },
   computed: {
@@ -194,7 +204,9 @@ export default {
       return this.structureType === 'INCOME' ? this.report.income : this.report.expense
     },
     defaultStructureColor() {
-      return this.structureType === 'INCOME' ? '#1f8f72' : '#d94a62'
+      return this.structureType === 'INCOME'
+        ? 'var(--app-positive-color, #1f8f72)'
+        : 'var(--app-liability-color, #d94a62)'
     },
     periodTitle() {
       const current = this.periodOptions.find(item => item.value === this.periodType)
@@ -213,41 +225,6 @@ export default {
       if (this.periodType === 'year') return `${date.getFullYear()} 年`
       return this.formatMonthText(date)
     },
-    budgetTotals() {
-      const used = this.budgets.reduce((sum, item) => sum + Number(item.usedAmount || 0), 0)
-      const total = this.budgets.reduce((sum, item) => sum + Number(item.amount || 0), 0)
-      return {
-        used,
-        total,
-        remaining: total - used,
-        rate: total > 0 ? used / total : 0
-      }
-    },
-    budgetStatusLevel() {
-      if (!this.budgets.length || this.budgetTotals.total <= 0) return 'empty'
-      if (this.budgetTotals.remaining < 0) return 'danger'
-      if (this.budgets.some(item => item.warning) || this.budgetTotals.rate >= 0.8) return 'warning'
-      return 'normal'
-    },
-    budgetStatusText() {
-      if (!this.budgets.length || this.budgetTotals.total <= 0) return '本月未设置预算'
-      if (this.budgetStatusLevel === 'danger') return '已超出预算'
-      if (this.budgetStatusLevel === 'warning') return '接近预算上限'
-      return '预算使用正常'
-    },
-    budgetUsageText() {
-      if (!this.budgets.length || this.budgetTotals.total <= 0) return '去设置本月支出上限'
-      return `已用 ${formatMoney(this.budgetTotals.used)} / ${formatMoney(this.budgetTotals.total)}`
-    },
-    budgetBalanceText() {
-      if (!this.budgets.length || this.budgetTotals.total <= 0) return ''
-      const amount = Math.abs(this.budgetTotals.remaining)
-      return this.budgetTotals.remaining < 0 ? `超支 ${formatMoney(amount)}` : `剩余 ${formatMoney(amount)}`
-    },
-    budgetProgressPercent() {
-      if (!this.budgets.length || this.budgetTotals.total <= 0) return '0%'
-      return `${Math.min(100, Math.round(this.budgetTotals.rate * 100))}%`
-    }
   },
   onLoad() {
     const today = new Date()
@@ -255,6 +232,7 @@ export default {
     this.currentMonth = this.formatMonth(today)
   },
   onShow() {
+    this.themeVars = getThemeVars(getThemeMode())
     this.refreshData()
   },
   methods: {
@@ -267,7 +245,6 @@ export default {
         const [startDate, endDate] = this.periodRange()
         await Promise.all([
           store.fetchCategories(),
-          store.fetchBudgets(this.currentMonth),
           store.fetchRecords({
             limit: 200,
             type: this.filterType,
@@ -277,7 +254,6 @@ export default {
           })
         ])
         this.categories = Array.isArray(store.categories) ? [...store.categories] : []
-        this.budgets = Array.isArray(store.budgets) ? [...store.budgets] : []
         this.records = Array.isArray(store.records) ? [...store.records] : []
         this.report = this.buildReport(this.records)
         if (this.structureType === 'EXPENSE' && !this.hasExpenseStats && this.hasIncomeStats) {
@@ -311,7 +287,7 @@ export default {
       const grouped = records.filter(item => item.transactionType === type).reduce((map, item) => {
         const key = item.categoryId || 'none'
         const current = map[key] || {
-          categoryName: item.categoryName || '未分类',
+          categoryName: item.categoryName || this.getFallbackCategoryName(type),
           colorHex: this.getCategoryColor(item.categoryId),
           amount: 0
         }
@@ -411,30 +387,75 @@ export default {
       return `${Math.min(100, Math.round(Number(value || 0) * 100))}%`
     },
     buildPieStyle(items) {
-      if (!items.length) return '#edf2f5'
+      if (!items.length) return 'var(--app-soft-bg, #edf2f5)'
       let start = 0
       const segments = items.map((item, index) => {
         const percent = Math.max(0, Number(item.percent || 0) * 100)
         const end = index === items.length - 1 ? 100 : Math.min(100, start + percent)
-        const color = item.colorHex || (index % 2 === 0 ? '#2EBD85' : '#5B8FF9')
+        const color = this.getStructureColor(index)
         const segment = `${color} ${start}% ${end}%`
         start = end
         return segment
       })
       return `conic-gradient(${segments.join(', ')})`
     },
+    getStructureColor(index) {
+      const expensePalette = [
+        'var(--app-liability-color, #d94a62)',
+        'var(--app-accent, #f4c95d)',
+        'var(--app-primary, #2ebd85)',
+        'var(--app-muted, #64748b)',
+        'var(--app-faint, #94a3b8)'
+      ]
+      const incomePalette = [
+        'var(--app-positive-color, #1f8f72)',
+        'var(--app-primary, #2ebd85)',
+        'var(--app-accent, #f4c95d)',
+        'var(--app-muted, #64748b)',
+        'var(--app-faint, #94a3b8)'
+      ]
+      const palette = this.structureType === 'INCOME' ? incomePalette : expensePalette
+      return palette[index % palette.length]
+    },
     getTypeName(type) {
       const map = { INCOME: '收入', EXPENSE: '支出', TRANSFER: '转账' }
       return map[type] || type
     },
-    getTypeSymbol(type) {
-      const map = { INCOME: '+', EXPENSE: '-', TRANSFER: '⇄' }
-      return map[type] || '·'
+    getFallbackCategoryName(type) {
+      if (type === 'INCOME') return '其他收入'
+      if (type === 'EXPENSE') return '其他支出'
+      return '转账'
     },
-    getAmountClass(type) {
-      if (type === 'INCOME') return 'income'
-      if (type === 'EXPENSE') return 'expense'
-      return ''
+    getRecordTitle(item) {
+      return item.categoryName || this.getFallbackCategoryName(item.transactionType)
+    },
+    amountClass(type) {
+      return {
+        income: type === 'INCOME',
+        expense: type === 'EXPENSE',
+        transfer: type === 'TRANSFER'
+      }
+    },
+    recordIconClass(item) {
+      const kind = this.getRecordIconKind(item)
+      return [
+        item.transactionType === 'INCOME' ? 'income' : '',
+        item.transactionType === 'EXPENSE' ? 'expense' : '',
+        item.transactionType === 'TRANSFER' ? 'transfer' : '',
+        `record-icon-${kind}`
+      ]
+    },
+    getRecordIconKind(item) {
+      if (item.transactionType === 'TRANSFER') return 'transfer'
+      const name = this.getRecordTitle(item)
+      if (/餐|饭|食|饮|咖|奶|茶|果/.test(name)) return 'food'
+      if (/购|买|衣|日用|超市|数码|电商/.test(name)) return 'shopping'
+      if (/交|车|油|地铁|公交|打车|出行|机票|火车/.test(name)) return 'travel'
+      if (/房|租|水|电|物业|居家/.test(name)) return 'home'
+      if (/医|药|诊|健康/.test(name)) return 'medical'
+      if (/工资|薪|奖金|分红|理财|利息|收入/.test(name)) return 'salary'
+      if (/娱乐|电影|游戏|会员/.test(name)) return 'fun'
+      return item.transactionType === 'INCOME' ? 'other-income' : 'other-expense'
     },
     getRecordAmount(item) {
       const amount = formatMoney(item.baseAmount || item.amount)
@@ -447,8 +468,7 @@ export default {
       if (item.transactionType === 'TRANSFER') {
         return `${item.accountName || '-'} → ${item.targetAccountName || '-'} · ${date}`
       }
-      const tag = item.tag ? ` · ${item.tag}` : ''
-      return `${item.accountName || '-'}${tag} · ${date}`
+      return `${item.accountName || '-'} · ${date}`
     },
     formatDisplayDate(value) {
       if (!value) return ''
@@ -462,8 +482,31 @@ export default {
     goEdit(item) {
       uni.navigateTo({ url: `/pages/transaction/form?id=${item.id}` })
     },
-    goBudget() {
-      uni.navigateTo({ url: `/pages/transaction/budget?month=${this.currentMonth}` })
+    handleRecordClick(item) {
+      if (this.swipedRecordId) {
+        this.swipedRecordId = null
+        return
+      }
+      this.goEdit(item)
+    },
+    handleRecordTouchStart(item, event) {
+      const touch = event.touches && event.touches[0]
+      if (!touch) return
+      this.swipeTouchStartX = touch.clientX
+      this.swipeTouchStartY = touch.clientY
+      this.swipeTouchRecordId = item.id
+    },
+    handleRecordTouchMove(item, event) {
+      const touch = event.touches && event.touches[0]
+      if (!touch || this.swipeTouchRecordId !== item.id) return
+      const deltaX = touch.clientX - this.swipeTouchStartX
+      const deltaY = touch.clientY - this.swipeTouchStartY
+      if (Math.abs(deltaX) > 42 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+        this.swipedRecordId = deltaX < 0 ? item.id : null
+      }
+    },
+    handleRecordTouchEnd() {
+      this.swipeTouchRecordId = null
     },
     confirmDelete(item) {
       uni.showModal({
@@ -491,255 +534,142 @@ export default {
   box-sizing: border-box;
 }
 
+/* ---- Hero Card ---- */
 .hero-card {
-  padding: 30rpx 28rpx 28rpx;
-  border-radius: 22rpx;
-  background: linear-gradient(135deg, #17202a 0%, #164d45 100%);
-  color: #fff;
-  margin-bottom: 18rpx;
+  position: relative;
+  overflow: hidden;
+  border-radius: 26rpx;
+  background: var(--app-outfit-header-bg, var(--app-hero-gradient, linear-gradient(135deg, #17202a 0%, #164d45 100%)));
+  color: var(--app-outfit-header-text, var(--app-hero-text, #ffffff));
+  margin-bottom: 14rpx;
+  box-shadow: 0 18rpx 42rpx rgba(15, 23, 42, 0.10);
 }
 
-.ledger-toolbar {
-  margin: 0 4rpx 14rpx;
+.hero-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--app-outfit-header-pattern, none);
+  opacity: 0.24;
+  pointer-events: none;
 }
 
-.hero-top,
-.hero-stats,
-.section-header,
-.record-item,
-.budget-summary-head,
-.budget-summary-foot,
-.date-nav,
-.filter-row,
-.legend-item,
-.legend-left {
+.hero-date-row {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20rpx;
+  padding: 20rpx 20rpx 0;
 }
 
-.hero-label,
-.stat-label,
-.section-subtitle,
-.record-sub {
-  display: block;
-  color: #7f8ea3;
-  font-size: 24rpx;
-  line-height: 34rpx;
-}
-
-.hero-label {
-  color: rgba(255, 255, 255, 0.76);
-}
-
-.hero-value {
-  display: block;
-  margin-top: 8rpx;
-  color: #ffd166;
-  font-size: 54rpx;
-  line-height: 64rpx;
-  font-weight: 850;
-  word-break: break-all;
-}
-
-.hero-value.negative {
-  color: #ff8fa3;
-}
-
-.hero-action {
-  flex-shrink: 0;
-  width: 148rpx;
-  height: 64rpx;
-  line-height: 64rpx;
+.hero-date-row .date-nav-btn {
+  width: 46rpx;
+  height: 46rpx;
+  line-height: 42rpx;
   margin: 0;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
-  font-size: 28rpx;
-  font-weight: 800;
   padding: 0;
-}
-
-.hero-stats {
-  margin-top: 24rpx;
-  padding-top: 22rpx;
-  border-top: 1rpx solid rgba(255, 255, 255, 0.14);
-}
-
-.stat-value {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 31rpx;
-  font-weight: 850;
-}
-
-.stat-value.income,
-.record-amount.income {
-  color: #1f8f72;
-}
-
-.stat-value.expense,
-.record-amount.expense {
-  color: #d94a62;
-}
-
-.panel-card {
-  background: #fff;
-  border-radius: 18rpx;
-  box-shadow: 0 8rpx 22rpx rgba(26, 42, 58, 0.045);
-}
-
-.swipe-hint {
-  display: block;
-  margin-top: 18rpx;
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 22rpx;
-  line-height: 30rpx;
-  text-align: center;
-}
-
-.budget-summary-card {
-  padding: 22rpx 24rpx;
-  margin-bottom: 18rpx;
-  border-radius: 18rpx;
-  background: #ffffff;
-  box-shadow: 0 8rpx 22rpx rgba(26, 42, 58, 0.045);
-  border: 1rpx solid #edf1f4;
-}
-
-.budget-summary-card.warning {
-  border-color: #ffe0a8;
-  background: #fffdf8;
-}
-
-.budget-summary-card.danger {
-  border-color: #ffd4dc;
-  background: #fff9fa;
-}
-
-.budget-title,
-.budget-subtitle,
-.budget-action {
-  display: block;
-}
-
-.budget-title {
-  color: #17202a;
-  font-size: 26rpx;
-  line-height: 34rpx;
-  font-weight: 800;
-}
-
-.budget-subtitle {
-  margin-top: 6rpx;
-  color: #7b8798;
-  font-size: 23rpx;
-  line-height: 32rpx;
-}
-
-.budget-summary-card.warning .budget-subtitle {
-  color: #b7791f;
-}
-
-.budget-summary-card.danger .budget-subtitle {
-  color: #d94a62;
-}
-
-.budget-action {
-  width: 42rpx;
-  height: 42rpx;
-  line-height: 38rpx;
-  text-align: center;
   border-radius: 50%;
-  background: #eef5f2;
-  color: #226f63;
-  font-size: 34rpx;
+  background: transparent;
+  color: var(--app-outfit-header-text, #ffffff);
+  border: 1rpx solid var(--app-section-bg, rgba(255, 255, 255, 0.22));
+  font-size: 30rpx;
   font-weight: 500;
-  flex-shrink: 0;
 }
 
-.budget-progress-track {
-  height: 12rpx;
-  margin: 18rpx 0 12rpx;
-  border-radius: 999rpx;
-  background: #edf2f5;
-  overflow: hidden;
-}
-
-.budget-progress-fill {
-  height: 100%;
-  border-radius: 999rpx;
-  background: #2ebd85;
-}
-
-.budget-summary-card.warning .budget-progress-fill {
-  background: #f5a623;
-}
-
-.budget-summary-card.danger .budget-progress-fill {
-  background: #d94a62;
-}
-
-.budget-summary-foot {
-  color: #7b8798;
-  font-size: 23rpx;
-  line-height: 32rpx;
-}
-
-.budget-summary-card.danger .budget-summary-foot text:last-child {
-  color: #d94a62;
-  font-weight: 800;
-}
-
-.panel-card {
-  padding: 24rpx;
-  margin-bottom: 18rpx;
-}
-
-.date-nav {
-  height: 54rpx;
-  padding: 0;
-}
-
-.date-title {
-  min-width: 260rpx;
+.hero-date-row .date-title {
   text-align: center;
 }
 
-.date-label {
+.hero-date-row .date-label {
   display: inline;
-  color: #17202a;
+  color: var(--app-outfit-header-text, #ffffff);
   font-size: 30rpx;
   line-height: 38rpx;
   font-weight: 850;
   margin-right: 12rpx;
 }
 
-.period-mode {
-  color: #7b8798;
+.hero-date-row .period-mode {
+  color: var(--app-outfit-header-sub, rgba(255, 255, 255, 0.68));
   font-size: 22rpx;
   line-height: 30rpx;
   font-weight: 750;
 }
 
-.date-nav-btn {
-  margin: 0;
-  width: 42rpx;
-  height: 42rpx;
-  line-height: 42rpx;
-  padding: 0;
-  border-radius: 50%;
-  background: #ffffff;
-  color: #226f63;
-  font-size: 32rpx;
-  font-weight: 500;
-  box-shadow: 0 6rpx 16rpx rgba(26, 42, 58, 0.045);
+.hero-overview {
+  position: relative;
+  z-index: 1;
+  padding: 14rpx 32rpx 24rpx;
+  text-align: center;
 }
 
-.filter-row {
+.hero-label {
+  display: block;
+  color: var(--app-outfit-header-sub, rgba(255, 255, 255, 0.76));
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.hero-value {
+  display: block;
+  margin-top: 6rpx;
+  color: var(--app-outfit-header-accent, var(--app-hero-accent, #ffd166));
+  font-size: 50rpx;
+  line-height: 60rpx;
+  font-weight: 850;
+  word-break: break-all;
+}
+
+.hero-value.negative {
+  color: var(--app-liability-color, #ff8fa3);
+}
+
+.hero-stats {
+  display: flex;
   align-items: center;
-  margin-top: 8rpx;
+  justify-content: center;
+  gap: 56rpx;
+  margin-top: 14rpx;
+  padding-top: 14rpx;
+  border-top: 1rpx solid var(--app-section-bg, rgba(255, 255, 255, 0.14));
+}
+
+.stat-label,
+.section-subtitle,
+.record-sub {
+  display: block;
+  color: var(--app-muted, #7f8ea3);
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.stat-label {
+  color: var(--app-outfit-header-sub, rgba(255, 255, 255, 0.68));
+}
+
+.stat-value {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 31rpx;
+  font-weight: 850;
+  text-align: center;
+}
+
+.stat-value.income {
+  color: var(--app-positive-color, #1f8f72);
+}
+
+.stat-value.expense {
+  color: var(--app-liability-color, #d94a62);
+}
+
+.filter-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 10rpx 4rpx 20rpx;
 }
 
 .type-scroll {
@@ -750,85 +680,111 @@ export default {
 
 .type-chip-row {
   display: flex;
-  gap: 28rpx;
+  gap: 10rpx;
   width: max-content;
   padding: 0 2rpx;
 }
 
 .type-chip {
-  position: relative;
-  height: 44rpx;
-  line-height: 44rpx;
-  padding: 0;
-  background: transparent;
-  color: #64748b;
+  height: 58rpx;
+  line-height: 58rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  background: var(--app-card-bg, #ffffff);
+  color: var(--app-muted, #64748b);
   font-size: 25rpx;
   font-weight: 800;
+  border: 1rpx solid var(--app-border, #edf1f4);
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
 }
 
 .type-chip.active {
-  background: transparent;
-  color: #17202a;
-  box-shadow: none;
-}
-
-.type-chip.active::after {
-  content: '';
-  position: absolute;
-  left: 8rpx;
-  right: 8rpx;
-  bottom: 0;
-  height: 5rpx;
-  border-radius: 999rpx;
-  background: #2ebd85;
+  color: var(--app-primary-dark, #226f63);
+  background: var(--app-tabbar-selected-bg, rgba(211, 164, 20, 0.12));
+  border-color: var(--app-primary, #d3a414);
 }
 
 .category-pill {
-  height: 44rpx;
-  max-width: 184rpx;
-  padding: 0 2rpx 0 16rpx;
-  border-left: 1rpx solid #dbe3ea;
-  background: transparent;
-  color: #64748b;
+  height: 58rpx;
+  max-width: 204rpx;
+  padding: 0 10rpx 0 20rpx;
+  border: 1rpx solid var(--app-border, #edf1f4);
+  border-radius: 999rpx;
+  background: var(--app-card-bg, #ffffff);
+  color: var(--app-muted, #64748b);
   display: flex;
   align-items: center;
   gap: 8rpx;
   font-size: 25rpx;
   font-weight: 800;
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
 }
 
 .category-pill.disabled {
-  color: #a8b2bd;
-  border-left-color: #e5e9ee;
+  color: var(--app-faint, #94a3b8);
+  background: var(--app-soft-bg, #f3f6f8);
 }
 
 .category-pill text:first-child {
   min-width: 0;
-  max-width: 140rpx;
+  max-width: 148rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .category-arrow {
-  color: #226f63;
+  color: var(--app-faint, #94a3b8);
   font-size: 28rpx;
   line-height: 28rpx;
 }
 
 .category-pill.disabled .category-arrow {
-  color: #c2cad3;
+  color: var(--app-faint, #94a3b8);
 }
 
-.section-header {
-  align-items: flex-start;
+/* ---- Panels ---- */
+.panel-card {
+  background: var(--app-card-bg, #ffffff);
+  border-radius: 18rpx;
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
+  padding: 24rpx;
   margin-bottom: 18rpx;
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-bottom: 18rpx;
+}
+
+.section-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  min-width: 0;
+}
+
 .section-title {
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 31rpx;
   font-weight: 850;
+}
+
+.section-add-btn {
+  width: 56rpx;
+  height: 56rpx;
+  line-height: 52rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--app-tabbar-selected-bg, rgba(211, 164, 20, 0.12));
+  color: var(--app-primary-dark, #226f63);
+  border: 1rpx solid var(--app-border, #edf1f4);
+  font-size: 34rpx;
+  font-weight: 500;
 }
 
 .structure-card {
@@ -856,23 +812,23 @@ export default {
   width: 100rpx;
   height: 100rpx;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--app-card-bg, #ffffff);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 0 0 1rpx #edf1f4;
+  box-shadow: inset 0 0 0 1rpx var(--app-border, #edf1f4);
 }
 
 .pie-label {
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 20rpx;
   line-height: 26rpx;
 }
 
 .pie-value {
   max-width: 86rpx;
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 19rpx;
   line-height: 26rpx;
   font-weight: 850;
@@ -887,10 +843,16 @@ export default {
 }
 
 .legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
   padding: 6rpx 0;
 }
 
 .legend-left {
+  display: flex;
+  align-items: center;
   justify-content: flex-start;
   min-width: 0;
   gap: 10rpx;
@@ -904,7 +866,7 @@ export default {
 }
 
 .legend-name {
-  color: #334155;
+  color: var(--app-muted, #334155);
   font-size: 24rpx;
   line-height: 32rpx;
   font-weight: 750;
@@ -915,7 +877,7 @@ export default {
 }
 
 .legend-percent {
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 23rpx;
   line-height: 32rpx;
   flex-shrink: 0;
@@ -926,7 +888,7 @@ export default {
   gap: 6rpx;
   padding: 4rpx;
   border-radius: 999rpx;
-  background: #f3f6f8;
+  background: var(--app-soft-bg, #f3f6f8);
 }
 
 .structure-switch-item {
@@ -935,47 +897,319 @@ export default {
   line-height: 42rpx;
   border-radius: 999rpx;
   text-align: center;
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 23rpx;
   font-weight: 800;
 }
 
 .structure-switch-item.active {
-  background: #17202a;
+  background: var(--app-primary, #e8c56d);
   color: #ffffff;
 }
 
+.record-row {
+  position: relative;
+  overflow: hidden;
+}
+
+.record-row.swiped {
+  z-index: 1;
+}
+
+.record-delete-underlay {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 140rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-danger, #d94a62);
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
 .record-item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
   padding: 24rpx 0;
-  border-bottom: 1rpx solid #edf1f4;
+  border-bottom: 1rpx solid var(--app-border, #edf1f4);
+  background: var(--app-card-bg, #ffffff);
+  transition: transform 0.18s ease;
+}
+
+.record-icon {
+  width: 62rpx;
+  height: 62rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--app-muted, #64748b);
+  background: var(--app-card-bg, #ffffff);
+  border: 1rpx solid var(--app-border, #edf1f4);
+}
+
+.record-icon.income {
+  color: var(--app-positive-color, #1f8f72);
+  background: var(--app-status-good-bg, #ecfdf5);
+  border-color: rgba(31, 143, 114, 0.16);
+}
+
+.record-icon.expense {
+  color: var(--app-liability-color, #d94a62);
+  background: var(--app-status-risk-bg, #fff1f2);
+  border-color: rgba(217, 74, 98, 0.16);
+}
+
+.record-icon.transfer {
+  color: var(--app-muted, #64748b);
+  background: var(--app-soft-bg, #f3f6f8);
+}
+
+.record-symbol {
+  position: relative;
+  width: 30rpx;
+  height: 30rpx;
+}
+
+.record-symbol::before,
+.record-symbol::after {
+  content: '';
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.record-icon-income .record-symbol::before,
+.record-icon-expense .record-symbol::before {
+  left: 50%;
+  top: 5rpx;
+  width: 2rpx;
+  height: 20rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+
+.record-icon-expense .record-symbol::after {
+  left: 8rpx;
+  bottom: 5rpx;
+  width: 14rpx;
+  height: 14rpx;
+  border-right: 2rpx solid currentColor;
+  border-bottom: 2rpx solid currentColor;
+  transform: rotate(45deg);
+}
+
+.record-icon-income .record-symbol::after {
+  left: 8rpx;
+  top: 5rpx;
+  width: 14rpx;
+  height: 14rpx;
+  border-left: 2rpx solid currentColor;
+  border-top: 2rpx solid currentColor;
+  transform: rotate(45deg);
+}
+
+.record-icon-transfer .record-symbol::before {
+  left: 2rpx;
+  top: 8rpx;
+  width: 24rpx;
+  height: 2rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  box-shadow: 4rpx 12rpx 0 currentColor;
+}
+
+.record-icon-transfer .record-symbol::after {
+  right: 1rpx;
+  top: 4rpx;
+  width: 10rpx;
+  height: 10rpx;
+  border-right: 2rpx solid currentColor;
+  border-top: 2rpx solid currentColor;
+  transform: rotate(45deg);
+  box-shadow: -16rpx 16rpx 0 -2rpx var(--app-soft-bg, #f3f6f8), -16rpx 16rpx 0 0 currentColor;
+}
+
+.record-icon-food .record-symbol::before {
+  left: 5rpx;
+  top: 5rpx;
+  width: 20rpx;
+  height: 20rpx;
+  border: 2rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.record-icon-food .record-symbol::after {
+  left: 10rpx;
+  top: 10rpx;
+  width: 10rpx;
+  height: 10rpx;
+  border: 2rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.record-icon-shopping .record-symbol::before {
+  left: 4rpx;
+  top: 10rpx;
+  width: 22rpx;
+  height: 17rpx;
+  border: 2rpx solid currentColor;
+  border-radius: 5rpx;
+}
+
+.record-icon-shopping .record-symbol::after {
+  left: 9rpx;
+  top: 4rpx;
+  width: 12rpx;
+  height: 10rpx;
+  border: 2rpx solid currentColor;
+  border-bottom: 0;
+  border-radius: 10rpx 10rpx 0 0;
+}
+
+.record-icon-travel .record-symbol::before {
+  left: 4rpx;
+  top: 10rpx;
+  width: 22rpx;
+  height: 12rpx;
+  border: 2rpx solid currentColor;
+  border-radius: 8rpx 8rpx 4rpx 4rpx;
+}
+
+.record-icon-travel .record-symbol::after {
+  left: 8rpx;
+  bottom: 4rpx;
+  width: 5rpx;
+  height: 5rpx;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 10rpx 0 0 currentColor;
+}
+
+.record-icon-home .record-symbol::before {
+  left: 6rpx;
+  top: 14rpx;
+  width: 18rpx;
+  height: 13rpx;
+  border: 2rpx solid currentColor;
+  border-top: 0;
+  border-radius: 0 0 5rpx 5rpx;
+}
+
+.record-icon-home .record-symbol::after {
+  left: 7rpx;
+  top: 6rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border-left: 2rpx solid currentColor;
+  border-top: 2rpx solid currentColor;
+  transform: rotate(45deg);
+}
+
+.record-icon-medical .record-symbol::before,
+.record-icon-medical .record-symbol::after {
+  left: 50%;
+  top: 50%;
+  border-radius: 999rpx;
+  background: currentColor;
+  transform: translate(-50%, -50%);
+}
+
+.record-icon-medical .record-symbol::before {
+  width: 22rpx;
+  height: 4rpx;
+}
+
+.record-icon-medical .record-symbol::after {
+  width: 4rpx;
+  height: 22rpx;
+}
+
+.record-icon-salary .record-symbol::before {
+  left: 5rpx;
+  top: 7rpx;
+  width: 20rpx;
+  height: 20rpx;
+  border: 2rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.record-icon-salary .record-symbol::after {
+  left: 14rpx;
+  top: 4rpx;
+  width: 2rpx;
+  height: 25rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+}
+
+.record-icon-fun .record-symbol::before {
+  left: 4rpx;
+  top: 10rpx;
+  width: 22rpx;
+  height: 16rpx;
+  border: 2rpx solid currentColor;
+  border-radius: 10rpx;
+}
+
+.record-icon-fun .record-symbol::after {
+  left: 9rpx;
+  top: 15rpx;
+  width: 4rpx;
+  height: 4rpx;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 9rpx 0 0 currentColor;
+}
+
+.record-icon-other-expense .record-symbol::before {
+  left: 6rpx;
+  top: 4rpx;
+  width: 19rpx;
+  height: 23rpx;
+  border: 2rpx solid currentColor;
+  border-radius: 5rpx;
+}
+
+.record-icon-other-expense .record-symbol::after {
+  left: 11rpx;
+  top: 10rpx;
+  width: 9rpx;
+  height: 2rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  box-shadow: 0 6rpx 0 currentColor, 0 12rpx 0 currentColor;
+}
+
+.record-icon-other-income .record-symbol::before {
+  left: 5rpx;
+  top: 7rpx;
+  width: 20rpx;
+  height: 16rpx;
+  border: 2rpx solid currentColor;
+  border-radius: 9rpx;
+}
+
+.record-icon-other-income .record-symbol::after {
+  left: 14rpx;
+  top: 3rpx;
+  width: 2rpx;
+  height: 23rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  box-shadow: -5rpx 5rpx 0 -1rpx currentColor, 5rpx 5rpx 0 -1rpx currentColor;
 }
 
 .record-item:last-child {
   border-bottom: none;
-}
-
-.record-icon {
-  width: 58rpx;
-  height: 58rpx;
-  border-radius: 16rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #eef5f2;
-  color: #226f63;
-  font-size: 28rpx;
-  font-weight: 850;
-  flex-shrink: 0;
-}
-
-.record-icon.expense {
-  background: #fff1f3;
-  color: #d94a62;
-}
-
-.record-icon.transfer {
-  background: #f2f5f7;
-  color: #64748b;
 }
 
 .record-copy {
@@ -985,24 +1219,36 @@ export default {
 
 .record-title {
   display: block;
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 30rpx;
   line-height: 40rpx;
   font-weight: 800;
 }
 
 .record-amount {
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 30rpx;
   line-height: 40rpx;
   font-weight: 850;
   flex-shrink: 0;
 }
 
+.record-amount.income {
+  color: var(--app-positive-color, #1f8f72);
+}
+
+.record-amount.expense {
+  color: var(--app-liability-color, #d94a62);
+}
+
+.record-amount.transfer {
+  color: var(--app-muted, #64748b);
+}
+
 .empty-card {
   padding: 50rpx 0;
   text-align: center;
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 26rpx;
 }
 </style>

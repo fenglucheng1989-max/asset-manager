@@ -147,7 +147,7 @@ export default {
   gap: 6rpx;
   padding: 6rpx;
   border-radius: 16rpx;
-  background: #eef2f5;
+  background: var(--app-soft-bg, #eef2f5);
   margin-bottom: 22rpx;
 }
 
@@ -157,22 +157,22 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--app-muted, #64748b);
   font-size: 28rpx;
   font-weight: 800;
 }
 
 .type-tab.active {
-  background: #17202a;
-  color: #fff;
+  background: var(--app-primary, #e8c56d);
+  color: #ffffff;
 }
 
 .form-card,
 .list-card {
-  background: #fff;
-  border: 1rpx solid #edf1f4;
+  background: var(--app-card-bg, #ffffff);
+  border: 1rpx solid var(--app-border, #edf1f4);
   border-radius: 20rpx;
-  box-shadow: 0 12rpx 30rpx rgba(26, 42, 58, 0.06);
+  box-shadow: var(--app-shadow, 0 12rpx 30rpx rgba(26, 42, 58, 0.06));
 }
 
 .form-card {
@@ -193,11 +193,11 @@ export default {
 
 .form-row {
   height: 86rpx;
-  border-bottom: 1rpx solid #edf1f4;
+  border-bottom: 1rpx solid var(--app-border, #edf1f4);
 }
 
 .form-label {
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 30rpx;
   font-weight: 800;
 }
@@ -222,15 +222,15 @@ export default {
 }
 
 .color-dot.active {
-  border-color: #17202a;
+  border-color: var(--app-text, #17202a);
 }
 
 .save-btn {
   height: 86rpx;
   line-height: 86rpx;
   border-radius: 999rpx;
-  background: #17202a;
-  color: #fff;
+  background: var(--app-primary, #e8c56d);
+  color: #ffffff;
   font-size: 30rpx;
   font-weight: 800;
 }
@@ -245,20 +245,20 @@ export default {
 }
 
 .section-title {
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 32rpx;
   font-weight: 850;
 }
 
 .section-subtitle,
 .category-sub {
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 24rpx;
 }
 
 .category-item {
   padding: 24rpx 0;
-  border-bottom: 1rpx solid #edf1f4;
+  border-bottom: 1rpx solid var(--app-border, #edf1f4);
 }
 
 .category-item:last-child {
@@ -274,18 +274,18 @@ export default {
 
 .category-name {
   display: block;
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 30rpx;
   font-weight: 800;
 }
 
 .category-actions {
-  color: #226f63;
+  color: var(--app-primary-dark, #226f63);
   font-size: 26rpx;
   font-weight: 800;
 }
 
 .category-actions .danger {
-  color: #d94a62;
+  color: var(--app-danger, #d94a62);
 }
 </style>

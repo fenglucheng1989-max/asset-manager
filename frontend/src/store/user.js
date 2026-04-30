@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { request } from '../utils/request'
+import { request, requestRaw } from '../utils/request'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -25,11 +25,18 @@ export const useUserStore = defineStore('user', {
       }
       return res
     },
-    async register(username, password, email) {
+    async register(username, password, email, legal = {}) {
       const res = await request({
         url: '/api/v1/auth/register',
         method: 'POST',
-        data: { username, password, email }
+        data: {
+          username,
+          password,
+          email,
+          acceptLegal: legal.acceptLegal,
+          acceptedTermsVersion: legal.acceptedTermsVersion,
+          acceptedPrivacyVersion: legal.acceptedPrivacyVersion
+        }
       })
       if (res.code === 200) {
         this.token = res.data.token
@@ -47,6 +54,12 @@ export const useUserStore = defineStore('user', {
       }
       return res
     },
+    async fetchLatestLegalDocuments() {
+      return request({ url: '/api/v1/legal-documents/latest', method: 'GET' })
+    },
+    async fetchLatestLegalDocument(type) {
+      return request({ url: `/api/v1/legal-documents/latest/${type}`, method: 'GET' })
+    },
     async updateBaseCurrency(baseCurrency) {
       const res = await request({
         url: '/api/v1/user/profile/base-currency',
@@ -58,6 +71,66 @@ export const useUserStore = defineStore('user', {
         uni.setStorageSync('userProfile', res.data)
       }
       return res
+    },
+    async exportCsv(type) {
+      return requestRaw({
+        url: `/api/v1/user/data/export/${type}`,
+        method: 'GET',
+        header: { Accept: 'text/csv' },
+        responseType: 'text'
+      })
+    },
+    async exportBackup() {
+      return request({
+        url: '/api/v1/user/data/backup',
+        method: 'GET'
+      })
+    },
+    async restoreBackup(data) {
+      return request({
+        url: '/api/v1/user/data/restore',
+        method: 'POST',
+        data
+      })
+    },
+    async clearData() {
+      return request({
+        url: '/api/v1/user/data',
+        method: 'DELETE'
+      })
+    },
+    async updateProfile(data) {
+      const res = await request({
+        url: '/api/v1/user/profile',
+        method: 'PUT',
+        data
+      })
+      if (res.code === 200) {
+        this.profile = res.data
+        uni.setStorageSync('userProfile', res.data)
+      }
+      return res
+    },
+    async changePassword(currentPassword, newPassword) {
+      return request({
+        url: '/api/v1/user/security/password',
+        method: 'PUT',
+        data: { currentPassword, newPassword }
+      })
+    },
+    async deleteAccount(currentPassword) {
+      return request({
+        url: '/api/v1/user/account',
+        method: 'DELETE',
+        data: { currentPassword }
+      })
+    },
+    async submitFeedback(data) {
+      return request({
+        url: '/api/v1/user/feedback',
+        method: 'POST',
+        data
+      })
     },
     logout() {
       this.token = ''

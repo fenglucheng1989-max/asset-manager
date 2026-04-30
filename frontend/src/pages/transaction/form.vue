@@ -43,41 +43,14 @@
         </picker>
       </view>
 
-      <view class="inline-category" v-if="form.transactionType !== 'TRANSFER'">
-        <view class="inline-category-head" @click="toggleCategoryCreator">
-          <text>{{ showCategoryCreator || categoryOptions.length === 0 ? '新增分类' : '没有合适分类？' }}</text>
-          <text class="inline-category-action">{{ showCategoryCreator || categoryOptions.length === 0 ? '收起' : '自定义' }}</text>
-        </view>
-        <view class="inline-category-form" v-if="showCategoryCreator || categoryOptions.length === 0">
-          <input class="category-input" v-model="newCategoryName" maxlength="30" placeholder="例如：餐饮、工资" />
-          <view class="category-color-row">
-            <view
-              v-for="color in categoryColors"
-              :key="color"
-              :class="['category-color', { active: newCategoryColor === color }]"
-              :style="{ backgroundColor: color }"
-              @click="newCategoryColor = color"
-            ></view>
-          </view>
-          <button class="category-save-btn" :disabled="isCategorySaving" @click="createInlineCategory">
-            {{ isCategorySaving ? '添加中' : '添加并选中' }}
-          </button>
-        </view>
-      </view>
-
       <view class="form-item">
         <text class="form-label">金额</text>
         <input class="form-input" v-model="form.amount" type="digit" placeholder="0.00" />
       </view>
 
       <view class="form-item">
-        <text class="form-label">标签</text>
-        <input class="form-input" v-model="form.tag" maxlength="50" placeholder="选填" />
-      </view>
-
-      <view class="form-item">
         <text class="form-label">备注</text>
-        <input class="form-input" v-model="form.remark" maxlength="200" placeholder="选填" />
+        <input class="form-input" v-model="form.remark" type="text" confirm-type="done" maxlength="200" placeholder="选填" />
       </view>
     </view>
 
@@ -92,6 +65,7 @@ import { useAssetStore } from '../../store/asset'
 import { useTransactionStore } from '../../store/transaction'
 
 const MONEY_PATTERN = /^(0|[1-9]\d{0,14})(\.\d{1,4})?$/
+const PREFERENCE_KEY = 'transaction_quick_preferences'
 
 export default {
   data() {
@@ -105,7 +79,6 @@ export default {
         currency: 'CNY',
         exchangeRateToCny: 1,
         occurredAt: '',
-        tag: '',
         remark: ''
       },
       recordId: null,
@@ -120,12 +93,7 @@ export default {
       accountIndex: 0,
       targetAccountIndex: 0,
       categoryIndex: 0,
-      isSaving: false,
-      showCategoryCreator: false,
-      newCategoryName: '',
-      newCategoryColor: '#FF6B6B',
-      isCategorySaving: false,
-      categoryColors: ['#FF6B6B', '#2EBD85', '#5B8FF9', '#FFC107', '#00BCD4', '#8B5CF6', '#64748B']
+      isSaving: false
     }
   },
   onLoad(options = {}) {
@@ -139,18 +107,19 @@ export default {
       await assetStore.fetchAccounts()
       this.accountOptions = Array.isArray(assetStore.accounts) ? [...assetStore.accounts] : []
       if (this.accountOptions.length > 0) {
-        this.applyAccount(this.accountOptions[0], false)
+        this.applyPreferredAccounts()
         if (this.accountOptions.length > 1) {
-          this.targetAccountIndex = 1
-          this.form.targetAccountId = this.accountOptions[1].id
+          this.applyPreferredTargetAccount()
         }
       }
       await transactionStore.fetchCategories(this.form.transactionType)
-      this.categoryOptions = Array.isArray(transactionStore.categories) ? [...transactionStore.categories] : []
+      this.categoryOptions = this.buildCategoryOptions(transactionStore.categories)
       if (this.categoryOptions.length > 0) {
         this.form.categoryId = this.categoryOptions[0].id
       }
-      this.syncCategoryCreatorColor()
+      if (!this.recordId) {
+        this.applyPreferredCategory()
+      }
       if (this.recordId) {
         await this.loadRecord()
       }
@@ -173,30 +142,32 @@ export default {
       this.form.currency = record.currency || 'CNY'
       this.form.exchangeRateToCny = record.exchangeRateToCny || 1
       this.form.occurredAt = record.occurredAt || ''
-      this.form.tag = record.tag || ''
       this.form.remark = record.remark || ''
       this.accountIndex = Math.max(0, this.accountOptions.findIndex(item => item.id === record.accountId))
       this.targetAccountIndex = Math.max(0, this.accountOptions.findIndex(item => item.id === record.targetAccountId))
       await transactionStore.fetchCategories(this.form.transactionType)
-      this.categoryOptions = Array.isArray(transactionStore.categories) ? [...transactionStore.categories] : []
+      this.categoryOptions = this.buildCategoryOptions(transactionStore.categories)
       this.categoryIndex = Math.max(0, this.categoryOptions.findIndex(item => item.id === record.categoryId))
-      this.syncCategoryCreatorColor()
     },
     async selectType(type) {
       this.form.transactionType = type
       this.form.categoryId = null
       const transactionStore = useTransactionStore()
       await transactionStore.fetchCategories(type)
-      this.categoryOptions = Array.isArray(transactionStore.categories) ? [...transactionStore.categories] : []
+      this.categoryOptions = this.buildCategoryOptions(transactionStore.categories)
       this.categoryIndex = 0
       if (this.categoryOptions.length > 0) {
         this.form.categoryId = this.categoryOptions[0].id
       }
-      this.syncCategoryCreatorColor()
+      this.applyPreferredAccounts()
+      this.applyPreferredCategory()
     },
     selectAccount(event) {
       this.accountIndex = Number(event.detail.value)
       this.applyAccount(this.accountOptions[this.accountIndex], false)
+      if (this.form.transactionType === 'TRANSFER' && this.form.accountId === this.form.targetAccountId) {
+        this.applyPreferredTargetAccount()
+      }
     },
     selectTargetAccount(event) {
       this.targetAccountIndex = Number(event.detail.value)
@@ -206,48 +177,80 @@ export default {
       this.categoryIndex = Number(event.detail.value)
       this.form.categoryId = this.categoryOptions[this.categoryIndex].id
     },
-    toggleCategoryCreator() {
-      if (this.categoryOptions.length === 0) return
-      this.showCategoryCreator = !this.showCategoryCreator
-    },
-    syncCategoryCreatorColor() {
-      this.newCategoryColor = this.form.transactionType === 'INCOME' ? '#2EBD85' : '#FF6B6B'
-    },
-    async createInlineCategory() {
-      const name = this.newCategoryName.trim()
-      if (!name) {
-        uni.showToast({ title: '请输入分类名称', icon: 'none' })
-        return
-      }
-      this.isCategorySaving = true
-      try {
-        const transactionStore = useTransactionStore()
-        const res = await transactionStore.createCategory({
-          name,
-          type: this.form.transactionType,
-          colorHex: this.newCategoryColor,
-          sortOrder: 100
-        })
-        if (res && res.code === 200) {
-          this.categoryOptions = Array.isArray(transactionStore.categories) ? [...transactionStore.categories] : []
-          const createdIndex = this.categoryOptions.findIndex(item => item.name === name)
-          this.categoryIndex = createdIndex >= 0 ? createdIndex : Math.max(0, this.categoryOptions.length - 1)
-          if (this.categoryOptions[this.categoryIndex]) {
-            this.form.categoryId = this.categoryOptions[this.categoryIndex].id
-          }
-          this.newCategoryName = ''
-          this.showCategoryCreator = false
-          uni.showToast({ title: '分类已添加', icon: 'success' })
-        }
-      } finally {
-        this.isCategorySaving = false
-      }
+    buildCategoryOptions(categories = []) {
+      if (this.form.transactionType === 'TRANSFER') return []
+      const list = Array.isArray(categories) ? [...categories] : []
+      const fallbackName = this.form.transactionType === 'INCOME' ? '其他收入' : '其他支出'
+      const hasFallback = list.some(item => item && item.name === fallbackName)
+      return hasFallback
+        ? list
+        : [...list, { id: null, name: fallbackName, type: this.form.transactionType, colorHex: '#94A3B8', fallback: true }]
     },
     applyAccount(account) {
       if (!account) return
       this.form.accountId = account.id
       this.form.currency = account.currency || 'CNY'
       this.form.exchangeRateToCny = account.exchangeRateToCny || 1
+    },
+    getPreferences() {
+      try {
+        const value = uni.getStorageSync(PREFERENCE_KEY)
+        return value && typeof value === 'object' ? value : {}
+      } catch (_) {
+        return {}
+      }
+    },
+    savePreferences(preferences) {
+      try {
+        uni.setStorageSync(PREFERENCE_KEY, preferences || {})
+      } catch (_) {}
+    },
+    findAccountIndex(id) {
+      return this.accountOptions.findIndex(item => Number(item.id) === Number(id))
+    },
+    applyPreferredAccounts() {
+      if (!this.accountOptions.length) return
+      const preferences = this.getPreferences()
+      const current = preferences[this.form.transactionType] || {}
+      const preferredIndex = this.findAccountIndex(current.accountId)
+      this.accountIndex = preferredIndex >= 0 ? preferredIndex : 0
+      this.applyAccount(this.accountOptions[this.accountIndex])
+      if (this.form.transactionType === 'TRANSFER') {
+        this.applyPreferredTargetAccount()
+      }
+    },
+    applyPreferredTargetAccount() {
+      if (this.accountOptions.length < 2) return
+      const preferences = this.getPreferences()
+      const current = preferences.TRANSFER || {}
+      const preferredIndex = this.findAccountIndex(current.targetAccountId)
+      const fallbackIndex = this.accountOptions.findIndex(item => Number(item.id) !== Number(this.form.accountId))
+      this.targetAccountIndex = preferredIndex >= 0 && Number(this.accountOptions[preferredIndex].id) !== Number(this.form.accountId)
+        ? preferredIndex
+        : Math.max(0, fallbackIndex)
+      this.form.targetAccountId = this.accountOptions[this.targetAccountIndex]
+        ? this.accountOptions[this.targetAccountIndex].id
+        : null
+    },
+    applyPreferredCategory() {
+      if (this.form.transactionType === 'TRANSFER' || !this.categoryOptions.length) return
+      const preferences = this.getPreferences()
+      const current = preferences[this.form.transactionType] || {}
+      const preferredIndex = this.categoryOptions.findIndex(item => Number(item.id) === Number(current.categoryId))
+      if (preferredIndex >= 0) {
+        this.categoryIndex = preferredIndex
+        this.form.categoryId = this.categoryOptions[preferredIndex].id
+      }
+    },
+    rememberCurrentPreference() {
+      const preferences = this.getPreferences()
+      preferences[this.form.transactionType] = {
+        accountId: this.form.accountId,
+        targetAccountId: this.form.transactionType === 'TRANSFER' ? this.form.targetAccountId : null,
+        categoryId: this.form.transactionType === 'TRANSFER' ? null : this.form.categoryId,
+        updatedAt: Date.now()
+      }
+      this.savePreferences(preferences)
     },
     validateForm() {
       if (!this.form.accountId) return '请选择账户'
@@ -277,6 +280,7 @@ export default {
           ? await store.updateRecord(this.recordId, payload)
           : await store.createRecord(payload)
         if (res && res.code === 200) {
+          this.rememberCurrentPreference()
           uni.showToast({ title: '已保存', icon: 'success' })
           setTimeout(() => uni.navigateBack(), 700)
         }
@@ -301,7 +305,7 @@ export default {
   gap: 6rpx;
   padding: 6rpx;
   border-radius: 16rpx;
-  background: #eef2f5;
+  background: var(--app-soft-bg, #eef2f5);
   margin-bottom: 24rpx;
 }
 
@@ -311,23 +315,23 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--app-muted, #64748b);
   font-size: 28rpx;
   font-weight: 700;
 }
 
 .type-tab.active {
-  background: #17202a;
+  background: var(--app-primary, #e8c56d);
   color: #ffffff;
-  box-shadow: 0 8rpx 18rpx rgba(23, 32, 42, 0.16);
+  box-shadow: 0 8rpx 18rpx rgba(0, 0, 0, 0.16);
 }
 
 .form-card {
-  background: #ffffff;
-  border: 1rpx solid #edf1f4;
+  background: var(--app-card-bg, #ffffff);
+  border: 1rpx solid var(--app-border, #edf1f4);
   border-radius: 20rpx;
   padding: 10rpx 30rpx;
-  box-shadow: 0 12rpx 30rpx rgba(26, 42, 58, 0.06);
+  box-shadow: var(--app-shadow, 0 12rpx 30rpx rgba(26, 42, 58, 0.06));
   margin-bottom: 30rpx;
 }
 
@@ -337,83 +341,15 @@ export default {
   align-items: center;
   justify-content: space-between;
   gap: 24rpx;
-  border-bottom: 1rpx solid #edf1f4;
+  border-bottom: 1rpx solid var(--app-border, #edf1f4);
 }
 
 .form-item:last-child {
   border-bottom: none;
 }
 
-.inline-category {
-  margin: 18rpx 0 10rpx;
-  border-radius: 16rpx;
-  background: #f6f8fb;
-  overflow: hidden;
-}
-
-.inline-category-head {
-  min-height: 72rpx;
-  padding: 0 22rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18rpx;
-  color: #17202a;
-  font-size: 26rpx;
-  font-weight: 750;
-}
-
-.inline-category-action {
-  color: #226f63;
-  flex-shrink: 0;
-}
-
-.inline-category-form {
-  padding: 0 22rpx 22rpx;
-}
-
-.category-input {
-  height: 72rpx;
-  line-height: 72rpx;
-  padding: 0 18rpx;
-  border-radius: 14rpx;
-  background: #ffffff;
-  color: #334155;
-  font-size: 28rpx;
-  box-sizing: border-box;
-}
-
-.category-color-row {
-  display: flex;
-  gap: 16rpx;
-  flex-wrap: wrap;
-  padding: 20rpx 0;
-}
-
-.category-color {
-  width: 46rpx;
-  height: 46rpx;
-  border-radius: 14rpx;
-  border: 4rpx solid transparent;
-  box-sizing: border-box;
-}
-
-.category-color.active {
-  border-color: #17202a;
-}
-
-.category-save-btn {
-  height: 74rpx;
-  line-height: 74rpx;
-  border-radius: 999rpx;
-  background: #17202a;
-  color: #ffffff;
-  font-size: 28rpx;
-  font-weight: 750;
-}
-
 .form-label {
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-size: 30rpx;
   font-weight: 700;
   flex-shrink: 0;
@@ -423,7 +359,7 @@ export default {
   flex: 1;
   min-width: 0;
   text-align: right;
-  color: #334155;
+  color: var(--app-muted, #334155);
   font-size: 30rpx;
 }
 
@@ -432,7 +368,7 @@ export default {
   align-items: center;
   justify-content: flex-end;
   gap: 12rpx;
-  color: #334155;
+  color: var(--app-muted, #334155);
   font-size: 30rpx;
 }
 
@@ -440,8 +376,8 @@ export default {
   width: 44rpx;
   height: 44rpx;
   border-radius: 50%;
-  background: #f2f6f4;
-  color: #226f63;
+  background: var(--app-soft-bg, #f2f6f4);
+  color: var(--app-primary-dark, #226f63);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -454,7 +390,7 @@ export default {
   height: 88rpx;
   line-height: 88rpx;
   border-radius: 999rpx;
-  background: #17202a;
+  background: var(--app-primary, #e8c56d);
   color: #ffffff;
   font-size: 32rpx;
   font-weight: 750;

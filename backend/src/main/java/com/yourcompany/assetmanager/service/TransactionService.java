@@ -30,7 +30,7 @@ public interface TransactionService {
 
     void deleteRecord(Long userId, Long recordId);
 
-    List<TransactionBudgetVO> listBudgets(Long userId, String month);
+    List<TransactionBudgetVO> listBudgets(Long userId, String periodType, String periodKey, String month);
 
     TransactionBudgetVO saveBudget(Long userId, TransactionBudgetDTO dto);
 

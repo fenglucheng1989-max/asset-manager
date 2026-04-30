@@ -6,6 +6,7 @@ import Dashboard from '../views/Dashboard.vue'
 import Users from '../views/Users.vue'
 import Accounts from '../views/Accounts.vue'
 import Transactions from '../views/Transactions.vue'
+import LegalDocuments from '../views/LegalDocuments.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -19,7 +20,8 @@ const router = createRouter({
         { path: 'dashboard', component: Dashboard },
         { path: 'users', component: Users },
         { path: 'accounts', component: Accounts },
-        { path: 'transactions', component: Transactions }
+        { path: 'transactions', component: Transactions },
+        { path: 'legal-documents', component: LegalDocuments }
       ]
     }
   ]

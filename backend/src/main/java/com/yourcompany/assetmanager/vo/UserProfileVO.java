@@ -14,6 +14,7 @@ public class UserProfileVO {
     private Long id;
     private String username;
     private String email;
+    private String avatarUrl;
     private String role;
     private String baseCurrency;
     private String createdAt;

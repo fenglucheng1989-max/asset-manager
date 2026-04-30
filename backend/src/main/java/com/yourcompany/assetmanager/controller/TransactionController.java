@@ -102,9 +102,11 @@ public class TransactionController extends BaseUserController {
 
     @GetMapping("/budgets")
     public ApiResponse<List<TransactionBudgetVO>> budgets(Authentication authentication,
+                                                         @RequestParam(required = false) String periodType,
+                                                         @RequestParam(required = false) String periodKey,
                                                          @RequestParam(required = false) String month) {
         Long userId = currentUserId(authentication);
-        return ApiResponse.success(transactionService.listBudgets(userId, month));
+        return ApiResponse.success(transactionService.listBudgets(userId, periodType, periodKey, month));
     }
 
     @PostMapping("/budgets")

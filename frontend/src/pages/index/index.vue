@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container" :style="themeVars">
     <view class="net-worth-card" @click="goToTrend">
       <view class="card-title-row">
         <text class="card-title">净资产</text>
@@ -58,17 +58,20 @@
             <text>删除</text>
           </view>
           <view class="account-surface" :style="getAccountSurfaceStyle(account, index)">
+          <view class="account-accent" :style="getAccountAccentStyle(account)"></view>
           <view class="account-main">
             <view class="account-left">
-              <view class="account-icon" :style="{ backgroundColor: account.colorHex || '#2EBD85' }">
-                <text class="icon-text">{{ getIconText(account.name) }}</text>
+              <view class="account-icon" :class="getAccountIconClass(account)" :style="getAccountIconStyle(account)">
+                <view class="account-line-mark"></view>
               </view>
               <view class="account-info">
                 <text class="account-name">{{ account.name }}</text>
                 <view class="account-meta">
                   <text>{{ getAccountTypeName(account.accountType) }}</text>
-                  <text class="meta-dot">·</text>
-                  <text>占比 {{ account.structurePercent }}%</text>
+                  <template v-if="account.currency && account.currency !== 'CNY'">
+                    <text class="meta-dot">·</text>
+                    <text>{{ account.currency }}</text>
+                  </template>
                 </view>
               </view>
             </view>
@@ -76,13 +79,7 @@
               <text :class="['account-balance', { liability: account.isLiability }]">
                 {{ account.isLiability ? '-' : '' }}{{ formatMoney(toBaseAmount(account)) }}
               </text>
-              <text class="account-currency" v-if="account.currency && account.currency !== 'CNY'">
-                {{ account.currency }} {{ Number(account.currentBalance || 0).toFixed(2) }}
-              </text>
             </view>
-          </view>
-          <view class="account-rank-track">
-            <view class="account-rank-bar" :style="{ width: account.structurePercent + '%', backgroundColor: account.colorHex || '#2EBD85' }"></view>
           </view>
           <view class="drag-hint" v-if="dragIndex === index">
             <text>拖动调整顺序</text>
@@ -100,12 +97,16 @@
         <text>新增账户</text>
       </button>
     </view>
+
+    <custom-tab-bar />
   </view>
 </template>
 
 <script>
+import CustomTabBar from '../../custom-tab-bar/index.vue'
 import { useAssetStore } from '../../store/asset'
 import { formatMoney, getAccountTypeName, toBaseAmount } from '../../utils/money'
+import { getThemeMode, getThemeVars } from '../../utils/theme'
 
 const DEFAULT_OVERVIEW = {
   totalAsset: 0,
@@ -116,6 +117,7 @@ const DEFAULT_OVERVIEW = {
 }
 
 export default {
+  components: { CustomTabBar },
   data() {
     return {
       hasToken: false,
@@ -134,21 +136,17 @@ export default {
       dragIndex: -1,
       dragAccountId: null,
       dragOffsetY: 0,
-      swipedAccountId: null
+      swipedAccountId: null,
+      themeVars: getThemeVars()
     }
   },
   computed: {
     accountRows() {
-      const rows = [...this.accounts]
-        .map(account => ({ ...account, baseAmount: toBaseAmount(account) }))
-      const total = rows.reduce((sum, item) => sum + Math.abs(item.baseAmount), 0)
-      return rows.map(item => ({
-        ...item,
-        structurePercent: total > 0 ? Math.max(1, Math.round(Math.abs(item.baseAmount) / total * 100)) : 0
-      }))
+      return [...this.accounts].map(account => ({ ...account, baseAmount: toBaseAmount(account) }))
     }
   },
   onShow() {
+    this.themeVars = getThemeVars(getThemeMode())
     this.refreshData()
   },
   beforeUnmount() {
@@ -193,8 +191,48 @@ export default {
         this.isLoading = false
       }
     },
-    getIconText(name) {
-      return name ? name.substring(0, 1) : '?'
+    getAccountIconClass(account) {
+      const map = {
+        BANK: 'account-icon-bank',
+        CASH: 'account-icon-cash',
+        E_WALLET: 'account-icon-wallet',
+        INVESTMENT: 'account-icon-trend',
+        REAL_ESTATE: 'account-icon-home',
+        OTHER_ASSET: 'account-icon-box',
+        CREDIT_CARD: 'account-icon-card',
+        LOAN: 'account-icon-loan',
+        OTHER_LIABILITY: 'account-icon-bill'
+      }
+      return map[account.accountType] || 'account-icon-box'
+    },
+    getAccountIconStyle(account) {
+      return {
+        color: account.isLiability ? 'var(--app-liability-color, #d94a62)' : 'var(--app-primary-dark, #8f6b00)'
+      }
+    },
+    getAccountAccentStyle(account) {
+      const color = this.normalizeColor(account.colorHex) || (account.isLiability ? '#d94a62' : '#d3a414')
+      return {
+        background: this.hexToRgba(color, 0.44)
+      }
+    },
+    normalizeColor(value) {
+      if (!value || typeof value !== 'string') return ''
+      const color = value.trim()
+      if (/^#[0-9a-fA-F]{6}$/.test(color)) return color
+      if (/^#[0-9a-fA-F]{3}$/.test(color)) {
+        return `#${color.slice(1).split('').map(char => char + char).join('')}`
+      }
+      return ''
+    },
+    hexToRgba(hex, alpha) {
+      const color = this.normalizeColor(hex)
+      if (!color) return `rgba(46, 189, 133, ${alpha})`
+      const value = color.slice(1)
+      const r = parseInt(value.slice(0, 2), 16)
+      const g = parseInt(value.slice(2, 4), 16)
+      const b = parseInt(value.slice(4, 6), 16)
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`
     },
     handleAccountClick(id) {
       if (this.dragIndex >= 0 || this.isPressDragging) return
@@ -374,12 +412,23 @@ export default {
 }
 
 .net-worth-card {
-  background: linear-gradient(135deg, #14202d 0%, #20384a 58%, #22564d 100%);
-  border-radius: 16rpx;
+  position: relative;
+  overflow: hidden;
+  background: var(--app-outfit-header-bg, var(--app-hero-gradient, linear-gradient(135deg, #14202d 0%, #20384a 58%, #22564d 100%)));
+  border-radius: 22rpx;
   padding: 40rpx 34rpx 34rpx;
   margin-bottom: 26rpx;
-  color: #ffffff;
-  box-shadow: 0 18rpx 40rpx rgba(17, 32, 45, 0.2);
+  color: var(--app-outfit-header-text, var(--app-hero-text, #ffffff));
+  box-shadow: 0 18rpx 42rpx rgba(15, 23, 42, 0.10);
+}
+
+.net-worth-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--app-outfit-header-pattern, none);
+  opacity: 0.9;
+  pointer-events: none;
 }
 
 .net-worth-card:active {
@@ -387,6 +436,8 @@ export default {
 }
 
 .card-title-row {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -394,30 +445,41 @@ export default {
   margin-bottom: 18rpx;
 }
 
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-shrink: 0;
+}
+
 .card-title {
   font-size: 28rpx;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--app-outfit-header-sub, var(--app-hero-sub, rgba(255, 255, 255, 0.78)));
 }
 
 .card-badge {
   flex-shrink: 0;
   padding: 8rpx 16rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.82);
+  background: var(--app-hero-badge-bg, rgba(255, 255, 255, 0.12));
+  color: var(--app-outfit-header-sub, var(--app-hero-sub, rgba(255, 255, 255, 0.82)));
   font-size: 22rpx;
 }
 
 .net-worth-amount {
+  position: relative;
+  z-index: 1;
   font-size: 64rpx;
   line-height: 78rpx;
   font-weight: 800;
-  color: #f4c95d;
+  color: var(--app-outfit-header-accent, var(--app-hero-accent, #f4c95d));
   margin-bottom: 34rpx;
   word-break: break-all;
 }
 
 .card-detail {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: space-between;
   gap: 24rpx;
@@ -430,12 +492,12 @@ export default {
   min-width: 0;
   padding: 22rpx;
   border-radius: 14rpx;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--app-section-bg, rgba(255, 255, 255, 0.1));
 }
 
 .detail-label {
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.68);
+  color: var(--app-outfit-header-sub, var(--app-hero-sub, rgba(255, 255, 255, 0.68)));
   margin-bottom: 8rpx;
 }
 
@@ -443,26 +505,27 @@ export default {
   font-size: 32rpx;
   font-weight: 500;
   word-break: break-all;
+  color: var(--app-outfit-header-text, var(--app-hero-text, #ffffff));
 }
 
 .detail-value.liability {
-  color: #ff9aa9;
+  color: var(--app-liability-color, #ff9aa9);
 }
 
 .account-section,
 .login-tip,
 .error-tip,
 .loading-tip {
-  background: #ffffff;
+  background: var(--app-card-bg, #ffffff);
   border-radius: 16rpx;
   padding: 30rpx;
   margin-bottom: 26rpx;
-  border: 1rpx solid #edf1f4;
-  box-shadow: 0 12rpx 30rpx rgba(26, 42, 58, 0.06);
+  border: 1rpx solid var(--app-border, #edf1f4);
+  box-shadow: var(--app-shadow, 0 12rpx 30rpx rgba(26, 42, 58, 0.06));
 }
 
 .loading-tip {
-  color: #666666;
+  color: var(--app-muted, #666666);
   font-size: 26rpx;
 }
 
@@ -474,25 +537,25 @@ export default {
 .error-tip {
   display: flex;
   flex-direction: column;
-  border: 1rpx solid #ffd6d6;
+  border: 1rpx solid var(--app-danger, #ffd6d6);
 }
 
 .login-tip-title {
   font-size: 32rpx;
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-weight: 700;
   margin-bottom: 12rpx;
 }
 
 .login-tip-text {
   font-size: 26rpx;
-  color: #888888;
+  color: var(--app-muted, #888888);
   line-height: 38rpx;
   margin-bottom: 24rpx;
 }
 
 .login-tip-btn {
-  background: linear-gradient(135deg, #2ebd85, #239a88);
+  background: var(--app-primary, #2ebd85);
   color: #ffffff;
   border-radius: 12rpx;
   height: 76rpx;
@@ -502,23 +565,23 @@ export default {
 
 .error-title {
   font-size: 30rpx;
-  color: #d94a62;
+  color: var(--app-danger, #d94a62);
   font-weight: 600;
   margin-bottom: 12rpx;
 }
 
 .error-text {
   font-size: 24rpx;
-  color: #777777;
+  color: var(--app-muted, #777777);
   line-height: 36rpx;
   margin-bottom: 20rpx;
   word-break: break-all;
 }
 
 .error-btn {
-  background: #ffffff;
-  color: #226f63;
-  border: 1rpx solid #b9d7ce;
+  background: var(--app-card-bg, #ffffff);
+  color: var(--app-primary-dark, #226f63);
+  border: 1rpx solid var(--app-border, #b9d7ce);
   border-radius: 12rpx;
   height: 72rpx;
   line-height: 72rpx;
@@ -528,13 +591,13 @@ export default {
 .section-title {
   font-size: 32rpx;
   font-weight: 700;
-  color: #17202a;
+  color: var(--app-text, #17202a);
 }
 
 .section-subtitle {
   display: block;
   margin-top: 6rpx;
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 24rpx;
   line-height: 34rpx;
 }
@@ -565,7 +628,7 @@ export default {
   border-radius: 18rpx;
   user-select: none;
   overflow: hidden;
-  background: #fbfcfd;
+  background: var(--app-card-bg-alt, #fbfcfd);
 }
 
 .account-item.dragging {
@@ -583,7 +646,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #d94a62;
+  background: var(--app-danger, #d94a62);
   color: #ffffff;
   font-size: 26rpx;
   font-weight: 800;
@@ -596,9 +659,18 @@ export default {
   flex-direction: column;
   padding: 24rpx;
   border-radius: 18rpx;
-  background: #fbfcfd;
-  border: 1rpx solid #edf1f4;
+  background: var(--app-card-bg-alt, #fbfcfd);
+  border: 1rpx solid var(--app-border, #edf1f4);
   transition: transform 0.18s ease;
+}
+
+.account-accent {
+  position: absolute;
+  left: 0;
+  top: 30rpx;
+  bottom: 30rpx;
+  width: 4rpx;
+  border-radius: 0 999rpx 999rpx 0;
 }
 
 .account-main {
@@ -607,20 +679,6 @@ export default {
   align-items: flex-start;
   gap: 20rpx;
   width: 100%;
-}
-
-.account-rank-track {
-  width: 100%;
-  height: 8rpx;
-  margin-top: 20rpx;
-  border-radius: 999rpx;
-  background: #edf2f5;
-  overflow: hidden;
-}
-
-.account-rank-bar {
-  height: 100%;
-  border-radius: 999rpx;
 }
 
 .account-left {
@@ -633,18 +691,193 @@ export default {
 .account-icon {
   width: 76rpx;
   height: 76rpx;
-  border-radius: 16rpx;
+  border-radius: 22rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 24rpx;
   flex-shrink: 0;
+  background: var(--app-soft-bg, #f2f6f4);
+  border: 1rpx solid var(--app-border, #edf1f4);
+  box-sizing: border-box;
 }
 
-.icon-text {
-  color: #ffffff;
-  font-size: 32rpx;
-  font-weight: bold;
+.account-line-mark {
+  position: relative;
+  width: 40rpx;
+  height: 40rpx;
+  box-sizing: border-box;
+}
+
+.account-line-mark::before,
+.account-line-mark::after,
+.account-icon::before,
+.account-icon::after {
+  content: '';
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.account-icon {
+  position: relative;
+}
+
+.account-icon-bank .account-line-mark::before {
+  left: 5rpx;
+  top: 14rpx;
+  width: 30rpx;
+  height: 18rpx;
+  border-left: 3rpx solid currentColor;
+  border-right: 3rpx solid currentColor;
+  box-shadow: inset 8rpx 0 0 -5rpx currentColor, inset -8rpx 0 0 -5rpx currentColor;
+}
+
+.account-icon-bank .account-line-mark::after {
+  left: 2rpx;
+  top: 5rpx;
+  width: 36rpx;
+  height: 11rpx;
+  border-top: 3rpx solid currentColor;
+  border-bottom: 3rpx solid currentColor;
+  transform: perspective(30rpx) rotateX(28deg);
+}
+
+.account-icon-cash .account-line-mark {
+  border: 3rpx solid currentColor;
+  border-radius: 8rpx;
+}
+
+.account-icon-cash .account-line-mark::before {
+  left: 50%;
+  top: 50%;
+  width: 13rpx;
+  height: 13rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.account-icon-wallet .account-line-mark {
+  border: 3rpx solid currentColor;
+  border-radius: 9rpx;
+}
+
+.account-icon-wallet .account-line-mark::before {
+  right: -3rpx;
+  top: 13rpx;
+  width: 17rpx;
+  height: 13rpx;
+  border: 3rpx solid currentColor;
+  border-right: 0;
+  border-radius: 8rpx 0 0 8rpx;
+  background: var(--app-soft-bg, #f2f6f4);
+}
+
+.account-icon-wallet .account-line-mark::after {
+  right: 5rpx;
+  top: 18rpx;
+  width: 4rpx;
+  height: 4rpx;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.account-icon-trend .account-line-mark::before {
+  left: 5rpx;
+  bottom: 7rpx;
+  width: 30rpx;
+  height: 24rpx;
+  border-left: 3rpx solid currentColor;
+  border-bottom: 3rpx solid currentColor;
+}
+
+.account-icon-trend .account-line-mark::after {
+  left: 9rpx;
+  top: 10rpx;
+  width: 26rpx;
+  height: 18rpx;
+  border-top: 3rpx solid currentColor;
+  border-right: 3rpx solid currentColor;
+  transform: skew(-24deg) rotate(-10deg);
+}
+
+.account-icon-home .account-line-mark::before {
+  left: 7rpx;
+  top: 16rpx;
+  width: 26rpx;
+  height: 20rpx;
+  border: 3rpx solid currentColor;
+  border-top: 0;
+  border-radius: 0 0 7rpx 7rpx;
+}
+
+.account-icon-home .account-line-mark::after {
+  left: 8rpx;
+  top: 5rpx;
+  width: 24rpx;
+  height: 24rpx;
+  border-left: 3rpx solid currentColor;
+  border-top: 3rpx solid currentColor;
+  transform: rotate(45deg);
+}
+
+.account-icon-card .account-line-mark {
+  border: 3rpx solid currentColor;
+  border-radius: 8rpx;
+}
+
+.account-icon-card .account-line-mark::before {
+  left: 0;
+  right: 0;
+  top: 11rpx;
+  height: 3rpx;
+  background: currentColor;
+}
+
+.account-icon-card .account-line-mark::after {
+  right: 6rpx;
+  bottom: 7rpx;
+  width: 12rpx;
+  height: 3rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+}
+
+.account-icon-loan .account-line-mark::before,
+.account-icon-bill .account-line-mark::before,
+.account-icon-box .account-line-mark::before {
+  inset: 4rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 8rpx;
+}
+
+.account-icon-loan .account-line-mark::after {
+  left: 9rpx;
+  right: 9rpx;
+  top: 12rpx;
+  height: 3rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  box-shadow: 0 8rpx 0 currentColor;
+}
+
+.account-icon-bill .account-line-mark::after {
+  left: 12rpx;
+  right: 9rpx;
+  top: 12rpx;
+  height: 3rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  box-shadow: 0 8rpx 0 currentColor, 0 16rpx 0 currentColor;
+}
+
+.account-icon-box .account-line-mark::after {
+  left: 8rpx;
+  top: 12rpx;
+  width: 24rpx;
+  height: 17rpx;
+  border-top: 3rpx solid currentColor;
+  border-bottom: 3rpx solid currentColor;
 }
 
 .account-info {
@@ -656,7 +889,7 @@ export default {
 
 .account-name {
   font-size: 30rpx;
-  color: #17202a;
+  color: var(--app-text, #17202a);
   font-weight: 650;
   margin-bottom: 8rpx;
   overflow: hidden;
@@ -668,14 +901,14 @@ export default {
   display: flex;
   align-items: center;
   gap: 8rpx;
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
   font-size: 23rpx;
   line-height: 32rpx;
   min-width: 0;
 }
 
 .meta-dot {
-  color: #7b8798;
+  color: var(--app-muted, #7b8798);
 }
 
 .account-right {
@@ -689,7 +922,7 @@ export default {
 
 .drag-hint {
   margin-top: 16rpx;
-  color: #226f63;
+  color: var(--app-primary-dark, #226f63);
   font-size: 22rpx;
   line-height: 30rpx;
   text-align: right;
@@ -698,17 +931,11 @@ export default {
 .account-balance {
   font-size: 30rpx;
   font-weight: 600;
-  color: #17202a;
+  color: var(--app-text, #17202a);
 }
 
 .account-balance.liability {
-  color: #d94a62;
-}
-
-.account-currency {
-  color: #7b8798;
-  font-size: 22rpx;
-  line-height: 30rpx;
+  color: var(--app-liability-color, #d94a62);
 }
 
 .add-account-btn {
@@ -719,9 +946,9 @@ export default {
   height: 86rpx;
   line-height: 86rpx;
   border-radius: 18rpx;
-  background: #eef8f4;
-  color: #226f63;
-  border: 1rpx dashed #a9d6ca;
+  background: var(--app-soft-bg, #eef8f4);
+  color: var(--app-primary-dark, #226f63);
+  border: 1rpx dashed var(--app-border, #a9d6ca);
   font-size: 28rpx;
   font-weight: 750;
 }
@@ -732,7 +959,7 @@ export default {
 }
 
 .empty-text {
-  color: #999999;
+  color: var(--app-muted, #999999);
   font-size: 28rpx;
 }
 </style>

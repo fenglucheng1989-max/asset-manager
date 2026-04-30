@@ -34,6 +34,12 @@ public class AppUser {
 
     private String baseCurrency;
 
+    private String acceptedTermsVersion;
+
+    private String acceptedPrivacyVersion;
+
+    private LocalDateTime legalAcceptedAt;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 

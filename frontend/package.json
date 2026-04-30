@@ -37,6 +37,7 @@
     "@dcloudio/uni-cli-shared": "3.0.0-alpha-5000820260420001",
     "@dcloudio/uni-stacktracey": "3.0.0-alpha-5000820260420001",
     "@dcloudio/vite-plugin-uni": "3.0.0-alpha-5000820260420001",
+    "puppeteer-core": "^24.42.0",
     "vite": "^5.2.0"
   }
 }

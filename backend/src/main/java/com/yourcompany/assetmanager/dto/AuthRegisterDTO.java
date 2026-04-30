@@ -13,4 +13,10 @@ public class AuthRegisterDTO {
     private String password;
 
     private String email;
+
+    private Boolean acceptLegal;
+
+    private String acceptedTermsVersion;
+
+    private String acceptedPrivacyVersion;
 }

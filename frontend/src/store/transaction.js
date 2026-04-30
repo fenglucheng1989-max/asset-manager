@@ -68,8 +68,9 @@ export const useTransactionStore = defineStore('transaction', {
       }
       return res
     },
-    async fetchBudgets(month) {
-      const query = buildQuery({ month })
+    async fetchBudgets(params = {}) {
+      const normalized = typeof params === 'string' ? { month: params } : params
+      const query = buildQuery(normalized)
       const res = await request({ url: `/api/v1/transactions/budgets${query}`, method: 'GET' })
       if (res.code === 200) {
         this.budgets = Array.isArray(res.data) ? res.data : []
@@ -78,12 +79,16 @@ export const useTransactionStore = defineStore('transaction', {
     },
     async saveBudget(data) {
       const res = await request({ url: '/api/v1/transactions/budgets', method: 'POST', data })
-      if (res.code === 200) await this.fetchBudgets(data.budgetMonth)
+      if (res.code === 200) {
+        this.fetchBudgets({ periodType: data.periodType, periodKey: data.budgetMonth }).catch(() => {})
+      }
       return res
     },
-    async deleteBudget(id, month) {
+    async deleteBudget(id, params = {}) {
       const res = await request({ url: `/api/v1/transactions/budgets/${id}`, method: 'DELETE' })
-      if (res.code === 200) await this.fetchBudgets(month)
+      if (res.code === 200) {
+        this.fetchBudgets(params).catch(() => {})
+      }
       return res
     },
     async fetchReport(month) {
