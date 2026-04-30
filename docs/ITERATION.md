@@ -66,6 +66,49 @@
   - `pages/mine/delete-account.vue` — 账户注销独立流程页
 - **静态资源**：打赏二维码（支付宝/微信）加入 `frontend/src/static/`
 
+### 阶段 3.5 — 邮箱注册/登录改造（进行中）
+
+- 注册/登录主标识从用户名切换为邮箱
+- 数据库 email 字段加 NOT NULL + UNIQUE 约束
+- JWT subject 统一为 email
+- 用户名改为自动从邮箱前缀生成
+
+## 认证体系扩展（后续迭代，架构预留）
+
+当前认证链路为单一路径：`DTO → AuthServiceImpl.login() → 查 DB → passwordEncoder.matches() → JWT`。扩展点如下：
+
+### 扩展点一：手机验证码登录
+
+在 `AppUser` 实体新增 `phone` 字段，扩展流程：
+
+- 新增 `POST /auth/sms/send` — 发送验证码（Redis 存储，5 分钟有效）
+- 新增 `POST /auth/sms/login` — 验证码登录（先查 phone → 匹配验证码 → 签发 JWT）
+- 注册流程支持 `POST /auth/sms/register` — 手机号+验证码注册
+- `AuthServiceImpl` 内部抽取 `authenticate(credential, type)` 策略，password/sms 两种类型
+
+### 扩展点二：微信等三方 OAuth 登录
+
+- `app_user` 表新增 `oauth_provider` / `oauth_open_id` 字段
+- 新增 `POST /auth/oauth/login` — 接收 provider + code，后端换取 openId + 用户信息
+- 首次登录自动注册（openId 不存在则创建用户），后续直接签发 JWT
+- 支持账号绑定/解绑：`POST /user/bind-oauth` / `POST /user/unbind-oauth`
+
+### 架构预留建议
+
+```
+AuthService
+  ├── loginByPassword(credential)      // 当前：密码登录
+  ├── loginBySmsCode(phone, code)      // 未来：验证码
+  └── loginByOAuth(provider, code)     // 未来：三方登录
+  
+AuthProvider (interface)               // 策略接口
+  ├── PasswordAuthProvider
+  ├── SmsAuthProvider
+  └── OAuthProvider
+```
+
+这些扩展点在当前改造中不落地代码，仅记录架构方向。
+
 ## 近期迭代
 
 ### 阶段 4 — 多端体验与管理增强
