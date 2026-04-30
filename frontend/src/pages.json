@@ -109,9 +109,21 @@
       }
     },
     {
+      "path": "pages/mine/email",
+      "style": {
+        "navigationBarTitleText": "修改邮箱"
+      }
+    },
+    {
       "path": "pages/mine/security",
       "style": {
         "navigationBarTitleText": "安全账户"
+      }
+    },
+    {
+      "path": "pages/mine/delete-account",
+      "style": {
+        "navigationBarTitleText": "注销账号"
       }
     },
     {

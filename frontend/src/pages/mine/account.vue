@@ -1,7 +1,8 @@
 <template>
-  <view class="container">
+  <view class="container" :style="themeVars">
     <view class="section-group">
       <view class="section-item" @click="handleChangeAvatar">
+        <view class="item-icon"><text class="item-icon-text">◉</text></view>
         <view class="item-copy">
           <text class="item-title">头像</text>
           <text class="item-desc">点击更换头像</text>
@@ -15,6 +16,7 @@
 
     <view class="section-group">
       <view class="section-item">
+        <view class="item-icon"><text class="item-icon-text">☺</text></view>
         <view class="item-copy">
           <text class="item-title">用户名</text>
           <text class="item-desc">注册后不可修改</text>
@@ -22,20 +24,17 @@
         <text class="item-value">{{ username }}</text>
       </view>
 
-      <view class="section-item" @click="startEditEmail">
+      <view class="section-item" @click="goEmail">
+        <view class="item-icon"><text class="item-icon-text">@</text></view>
         <view class="item-copy">
           <text class="item-title">邮箱</text>
-          <text class="item-desc">{{ editEmail ? '' : (email || '未设置') }}</text>
+          <text class="item-desc">{{ email || '未设置' }}</text>
         </view>
-        <template v-if="editEmail">
-          <input class="inline-input" v-model="emailForm.email" placeholder="请输入邮箱" />
-          <text class="action-btn" @click.stop="saveEmail">保存</text>
-          <text class="action-btn cancel" @click.stop="editEmail = false">取消</text>
-        </template>
-        <text v-else class="item-arrow">›</text>
+        <text class="item-arrow">›</text>
       </view>
 
       <view class="section-item">
+        <view class="item-icon"><text class="item-icon-text">☎</text></view>
         <view class="item-copy">
           <text class="item-title">手机号</text>
           <text class="item-desc">暂不支持修改</text>
@@ -46,17 +45,10 @@
 
     <view class="section-group">
       <view class="section-item" @click="goSecurity">
+        <view class="item-icon"><text class="item-icon-text">*</text></view>
         <view class="item-copy">
           <text class="item-title">修改密码</text>
           <text class="item-desc">更新登录密码</text>
-        </view>
-        <text class="item-arrow">›</text>
-      </view>
-
-      <view class="section-item" @click="handleExportData">
-        <view class="item-copy">
-          <text class="item-title">个人信息导出</text>
-          <text class="item-desc">下载个人数据的 JSON 备份</text>
         </view>
         <text class="item-arrow">›</text>
       </view>
@@ -64,6 +56,7 @@
 
     <view class="section-group">
       <view class="section-item danger" @click="handleDeleteAccount">
+        <view class="item-icon danger-icon"><text class="item-icon-text">!</text></view>
         <text class="danger-text">注销账号</text>
         <text class="item-arrow">›</text>
       </view>
@@ -73,6 +66,7 @@
 
 <script>
 import { useUserStore } from '../../store/user'
+import { getThemeVars } from '../../utils/theme'
 
 export default {
   data() {
@@ -80,11 +74,11 @@ export default {
       username: '',
       email: '',
       avatarUrl: '',
-      editEmail: false,
-      emailForm: { email: '' }
+      themeVars: getThemeVars()
     }
   },
   onShow() {
+    this.themeVars = getThemeVars()
     this.refreshProfile()
   },
   methods: {
@@ -156,72 +150,14 @@ export default {
         // #endif
       })
     },
-    startEditEmail() {
-      this.emailForm.email = this.email || ''
-      this.editEmail = true
-    },
-    async saveEmail() {
-      const email = this.emailForm.email.trim()
-      try {
-        const userStore = useUserStore()
-        const result = await userStore.updateProfile({ email: email || null })
-        if (result && result.code === 200) {
-          this.email = email
-          this.editEmail = false
-          uni.showToast({ title: '邮箱已更新', icon: 'success' })
-        }
-      } catch (error) {
-        const message = error && error.message ? error.message : '更新失败'
-        uni.showToast({ title: message, icon: 'none' })
-      }
-    },
-    handleExportData() {
-      uni.showModal({
-        title: '导出个人信息',
-        content: '将下载包含个人信息的 JSON 备份文件，是否继续？',
-        success: async (result) => {
-          if (!result.confirm) return
-          try {
-            const userStore = useUserStore()
-            const res = await userStore.exportBackup()
-            if (res && res.code === 200) {
-              this.downloadBackup(res.data)
-            }
-          } catch (error) {
-            uni.showToast({ title: '导出失败', icon: 'none' })
-          }
-        }
-      })
-    },
-    downloadBackup(data) {
-      // #ifdef H5
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'asset-manager-profile-' + new Date().toISOString().slice(0, 10) + '.json'
-      a.click()
-      URL.revokeObjectURL(url)
-      uni.showToast({ title: '下载已开始', icon: 'success' })
-      // #endif
-      // #ifndef H5
-      uni.showToast({ title: '导出成功，请查看备份文件', icon: 'success' })
-      // #endif
+    goEmail() {
+      uni.navigateTo({ url: '/pages/mine/email' })
     },
     goSecurity() {
       uni.navigateTo({ url: '/pages/mine/security' })
     },
     handleDeleteAccount() {
-      uni.showModal({
-        title: '账号注销',
-        content: '注销后所有数据将被永久删除且不可恢复。确定要继续吗？',
-        confirmText: '我确定要注销',
-        cancelText: '再想想',
-        success: (result) => {
-          if (!result.confirm) return
-          uni.navigateTo({ url: '/pages/mine/security?action=delete' })
-        }
-      })
+      uni.navigateTo({ url: '/pages/mine/delete-account' })
     }
   }
 }
@@ -232,6 +168,7 @@ export default {
   min-height: 100vh;
   padding: 24rpx 22rpx calc(48rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
 .section-group {
@@ -240,12 +177,12 @@ export default {
   border-radius: 18rpx;
   border: 1rpx solid var(--app-border, #edf1f4);
   background: var(--app-card-bg, #ffffff);
-  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26,42,58,0.045));
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(15, 23, 42, 0.045));
 }
 
 .section-item {
   min-height: 96rpx;
-  padding: 0 28rpx;
+  padding: 0 26rpx;
   display: flex;
   align-items: center;
   gap: 16rpx;
@@ -253,6 +190,34 @@ export default {
 }
 
 .section-item:last-child { border-bottom: none; }
+
+.item-icon {
+  width: 50rpx;
+  height: 50rpx;
+  border-radius: 50%;
+  background: var(--app-card-bg-alt, var(--app-soft-bg, #eff1f5));
+  border: 1rpx solid var(--app-border, #edf1f4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.item-icon-text {
+  color: var(--app-primary, #d3a414);
+  font-size: 26rpx;
+  line-height: 26rpx;
+  font-weight: 600;
+}
+
+.danger-icon {
+  background: var(--app-status-risk-bg, #fff1f2);
+  border-color: rgba(217, 74, 98, 0.16);
+}
+
+.danger-icon .item-icon-text {
+  color: var(--app-danger, #d94a62);
+}
 
 .item-copy {
   flex: 1;
@@ -295,47 +260,30 @@ export default {
   width: 80rpx;
   height: 80rpx;
   border-radius: 50%;
-  background-color: var(--app-soft-bg, #eef3f8);
+  background-color: var(--app-primary, #d3a414);
   background-size: cover;
   background-position: center;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 4rpx solid var(--app-card-bg, #ffffff);
+  box-shadow:
+    0 0 0 2rpx var(--app-border, #edf1f4),
+    0 8rpx 18rpx rgba(15, 23, 42, 0.10);
   flex-shrink: 0;
 }
 
 .avatar-placeholder {
   font-size: 34rpx;
-  font-weight: 850;
-  color: var(--app-muted, #7b8798);
-}
-
-.inline-input {
-  width: 200rpx;
-  height: 64rpx;
-  border-radius: 8rpx;
-  border: 1rpx solid var(--app-border, #edf1f4);
-  padding: 0 16rpx;
-  font-size: 26rpx;
-  color: var(--app-text, #17202a);
-  background: var(--app-input-bg, #f6f8fb);
-}
-
-.action-btn {
-  font-size: 26rpx;
   font-weight: 700;
-  color: var(--app-primary-dark, #226f63);
-  padding: 8rpx 12rpx;
-}
-
-.action-btn.cancel {
-  color: var(--app-muted, #64748b);
+  color: #ffffff;
 }
 
 .danger-text {
   font-size: 29rpx;
   font-weight: 700;
   color: var(--app-danger, #d94a62);
+  flex: 1;
 }
 
 .danger .item-arrow {

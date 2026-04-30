@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container" :style="themeVars">
     <view class="section-group">
       <view class="section-item" @click="goTheme">
         <view class="theme-mini-preview" :style="{ background: currentTheme.heroGradient }">
@@ -42,12 +42,14 @@
         <text class="item-arrow">›</text>
       </view>
     </view>
+
+    <view class="logout-btn" @click="handleLogout">退出登录</view>
   </view>
 </template>
 
 <script>
 import { useUserStore } from '../../store/user'
-import { getThemeMode, getThemeOptions, getResolvedTheme } from '../../utils/theme'
+import { getThemeMode, getThemeOptions, getResolvedTheme, getThemeVars } from '../../utils/theme'
 
 export default {
   data() {
@@ -55,6 +57,7 @@ export default {
       baseCurrency: 'CNY',
       themeMode: 'warm-gold',
       themeOptions: getThemeOptions(),
+      themeVars: getThemeVars(),
       currencyOptions: [
         { label: '人民币 CNY', value: 'CNY' },
         { label: '美元 USD', value: 'USD' },
@@ -79,6 +82,7 @@ export default {
   },
   onShow() {
     this.themeMode = getThemeMode()
+    this.themeVars = getThemeVars()
     this.refreshProfile()
   },
   methods: {
@@ -110,7 +114,24 @@ export default {
     },
     goTheme() { uni.navigateTo({ url: '/pages/mine/theme' }) },
     goDataManage() { uni.navigateTo({ url: '/pages/mine/data' }) },
-    goAccountSettings() { uni.navigateTo({ url: '/pages/mine/account' }) }
+    goAccountSettings() { uni.navigateTo({ url: '/pages/mine/account' }) },
+    handleLogout() {
+      uni.showModal({
+        title: '确认退出',
+        content: '确定要退出登录吗？',
+        success: (result) => {
+          if (!result.confirm) return
+          try {
+            const userStore = useUserStore()
+            userStore.logout()
+          } catch (error) {
+            uni.removeStorageSync('token')
+            uni.removeStorageSync('username')
+          }
+          uni.switchTab({ url: '/pages/mine/mine' })
+        }
+      })
+    }
   }
 }
 </script>
@@ -120,6 +141,7 @@ export default {
   min-height: 100vh;
   padding: 24rpx 22rpx calc(48rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
 .section-group {
@@ -133,7 +155,7 @@ export default {
 
 .section-item {
   min-height: 96rpx;
-  padding: 0 28rpx;
+  padding: 0 26rpx;
   display: flex;
   align-items: center;
   gap: 16rpx;
@@ -173,7 +195,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 8rpx;
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   font-size: 26rpx;
   font-weight: 800;
   flex-shrink: 0;
@@ -199,4 +221,16 @@ export default {
 }
 
 .mini-bar.short { height: 15rpx; }
+
+.logout-btn {
+  margin-top: 36rpx;
+  height: 86rpx;
+  line-height: 86rpx;
+  text-align: center;
+  border-radius: 18rpx;
+  background: var(--app-card-bg, #ffffff);
+  font-size: 30rpx;
+  color: var(--app-danger, #d94a62);
+  border: 1rpx solid var(--app-border, #edf1f4);
+}
 </style>

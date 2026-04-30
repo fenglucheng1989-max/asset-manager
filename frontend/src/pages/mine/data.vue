@@ -1,8 +1,8 @@
 <template>
-  <view class="container">
-    <view class="data-hero">
-      <text class="hero-title">数据与同步</text>
-      <text class="hero-subtitle">导出表格、备份本机数据，或从备份文件恢复当前账号数据。</text>
+  <view class="container" :style="themeVars">
+    <view class="page-hero">
+      <text class="page-title">数据与同步</text>
+      <text class="page-sub">导出表格、备份本机数据，或从备份文件恢复当前账号数据。</text>
     </view>
 
     <view class="section-card">
@@ -19,6 +19,16 @@
           <button class="mini-btn ghost" @click.stop="exportCsv(item)">CSV</button>
           <button class="mini-btn" @click.stop="exportExcel(item)">Excel</button>
         </view>
+      </view>
+    </view>
+
+    <view class="section-card">
+      <view class="menu-item" @click="exportProfile">
+        <view class="menu-copy">
+          <text class="menu-title">个人信息导出</text>
+          <text class="menu-subtitle">下载个人信息的 JSON 备份</text>
+        </view>
+        <text class="menu-arrow">›</text>
       </view>
     </view>
 
@@ -57,10 +67,12 @@
 
 <script>
 import { useUserStore } from '../../store/user'
+import { getThemeVars } from '../../utils/theme'
 
 export default {
   data() {
     return {
+      themeVars: getThemeVars(),
       exportTypes: [
         { type: 'accounts', name: '账户', subtitle: '账户余额、币种和备注' },
         { type: 'transactions', name: '记录', subtitle: '收入、支出和转账记录' },
@@ -68,6 +80,9 @@ export default {
         { type: 'snapshots', name: '快照', subtitle: '每日资产快照' }
       ]
     }
+  },
+  onShow() {
+    this.themeVars = getThemeVars()
   },
   methods: {
     async exportCsv(item) {
@@ -91,6 +106,28 @@ export default {
         uni.hideLoading()
         this.showError('导出失败', error)
       }
+    },
+    async exportProfile() {
+      uni.showModal({
+        title: '导出个人信息',
+        content: '将下载包含个人信息的 JSON 备份文件，是否继续？',
+        success: async (result) => {
+          if (!result.confirm) return
+          uni.showLoading({ title: '正在导出' })
+          try {
+            const res = await useUserStore().exportBackup()
+            const data = res && res.code === 200 ? res.data : res
+            const json = JSON.stringify(data, null, 2)
+            const filename = 'asset-manager-profile-' + new Date().toISOString().slice(0, 10) + '.json'
+            await this.saveText(json, filename, 'application/json;charset=utf-8')
+            uni.hideLoading()
+            uni.showToast({ title: '已导出', icon: 'success' })
+          } catch (error) {
+            uni.hideLoading()
+            this.showError('导出失败', error)
+          }
+        }
+      })
     },
     async exportBackup() {
       uni.showLoading({ title: '正在备份' })
@@ -359,32 +396,30 @@ export default {
 
 <style scoped>
 .container {
-  padding: 24rpx 22rpx calc(48rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
+  padding: 24rpx 22rpx calc(48rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
-.data-hero {
-  padding: 30rpx;
-  margin-bottom: 18rpx;
-  border-radius: 18rpx;
-  background: var(--app-hero-gradient, linear-gradient(135deg, #14202d 0%, #174a43 100%));
-  color: var(--app-hero-text, #ffffff);
+.page-hero {
+  padding: 20rpx 4rpx 28rpx;
 }
 
-.hero-title {
+.page-title {
   display: block;
   font-size: 40rpx;
   line-height: 52rpx;
-  font-weight: 850;
+  font-weight: 900;
+  color: var(--app-text, #17202a);
 }
 
-.hero-subtitle {
+.page-sub {
   display: block;
-  margin-top: 12rpx;
-  color: var(--app-hero-sub, rgba(255, 255, 255, 0.72));
+  margin-top: 8rpx;
+  color: var(--app-muted, #94a3b8);
   font-size: 25rpx;
-  line-height: 38rpx;
+  line-height: 34rpx;
 }
 
 .section-card {
@@ -468,8 +503,8 @@ export default {
 }
 
 .mini-btn.ghost {
-  background: var(--app-soft-bg, #f2f6f4);
-  color: var(--app-primary-dark, #226f63);
+  background: var(--app-soft-bg, #eff1f5);
+  color: var(--app-primary, #d3a414);
 }
 
 .menu-arrow {

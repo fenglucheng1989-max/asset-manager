@@ -1,0 +1,1 @@
+ALTER TABLE app_user ALTER COLUMN avatar_url TYPE TEXT;

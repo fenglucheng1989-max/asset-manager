@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container" :style="themeVars">
     <view class="type-tabs">
       <view
         v-for="item in typeOptions"
@@ -63,6 +63,7 @@
 <script>
 import { useAssetStore } from '../../store/asset'
 import { useTransactionStore } from '../../store/transaction'
+import { getThemeVars } from '../../utils/theme'
 
 const MONEY_PATTERN = /^(0|[1-9]\d{0,14})(\.\d{1,4})?$/
 const PREFERENCE_KEY = 'transaction_quick_preferences'
@@ -93,11 +94,13 @@ export default {
       accountIndex: 0,
       targetAccountIndex: 0,
       categoryIndex: 0,
-      isSaving: false
+      isSaving: false,
+      themeVars: getThemeVars()
     }
   },
   onLoad(options = {}) {
     this.recordId = options.id ? Number(options.id) : null
+    this.themeVars = getThemeVars()
     this.refreshData()
   },
   methods: {
@@ -297,6 +300,7 @@ export default {
   min-height: 100vh;
   padding: 28rpx 24rpx calc(120rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
 .type-tabs {
@@ -321,7 +325,7 @@ export default {
 }
 
 .type-tab.active {
-  background: var(--app-primary, #e8c56d);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
   box-shadow: 0 8rpx 18rpx rgba(0, 0, 0, 0.16);
 }
@@ -377,7 +381,7 @@ export default {
   height: 44rpx;
   border-radius: 50%;
   background: var(--app-soft-bg, #f2f6f4);
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -390,7 +394,7 @@ export default {
   height: 88rpx;
   line-height: 88rpx;
   border-radius: 999rpx;
-  background: var(--app-primary, #e8c56d);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
   font-size: 32rpx;
   font-weight: 750;

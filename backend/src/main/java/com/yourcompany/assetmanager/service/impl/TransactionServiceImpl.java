@@ -133,7 +133,7 @@ public class TransactionServiceImpl implements TransactionService {
             wrapper.lt(TransactionRecord::getOccurredAt, endDate.plusDays(1).atStartOfDay());
         }
         List<TransactionRecord> records = transactionRecordMapper.selectList(wrapper);
-        return toRecordVOs(records);
+        return toRecordVOs(userId, records);
     }
 
     @Override
@@ -143,7 +143,7 @@ public class TransactionServiceImpl implements TransactionService {
         applyRecord(record, false);
         transactionRecordMapper.insert(record);
         assetOverviewService.evictOverviewCache(userId);
-        return toRecordVOs(List.of(record)).get(0);
+        return toRecordVOs(userId, List.of(record)).get(0);
     }
 
     @Override
@@ -156,7 +156,7 @@ public class TransactionServiceImpl implements TransactionService {
         applyRecord(next, false);
         transactionRecordMapper.updateById(next);
         assetOverviewService.evictOverviewCache(userId);
-        return toRecordVOs(List.of(next)).get(0);
+        return toRecordVOs(userId, List.of(next)).get(0);
     }
 
     @Override
@@ -377,10 +377,12 @@ public class TransactionServiceImpl implements TransactionService {
         return category;
     }
 
-    private List<TransactionRecordVO> toRecordVOs(List<TransactionRecord> records) {
-        Map<Long, AssetAccount> accounts = assetAccountMapper.selectList(null).stream()
+    private List<TransactionRecordVO> toRecordVOs(Long userId, List<TransactionRecord> records) {
+        Map<Long, AssetAccount> accounts = assetAccountMapper.selectList(
+                new LambdaQueryWrapper<AssetAccount>().eq(AssetAccount::getUserId, userId)).stream()
                 .collect(Collectors.toMap(AssetAccount::getId, Function.identity(), (a, b) -> a));
-        Map<Long, TransactionCategory> categories = transactionCategoryMapper.selectList(null).stream()
+        Map<Long, TransactionCategory> categories = transactionCategoryMapper.selectList(
+                new LambdaQueryWrapper<TransactionCategory>().and(w -> w.isNull(TransactionCategory::getUserId).or().eq(TransactionCategory::getUserId, userId))).stream()
                 .collect(Collectors.toMap(TransactionCategory::getId, Function.identity(), (a, b) -> a));
         return records.stream().map(record -> toRecordVO(record, accounts, categories)).toList();
     }
@@ -395,9 +397,9 @@ public class TransactionServiceImpl implements TransactionService {
                 .id(record.getId())
                 .transactionType(record.getTransactionType())
                 .accountId(record.getAccountId())
-                .accountName(account == null ? null : account.getName())
+                .accountName(account == null ? "已删除账户" : account.getName())
                 .targetAccountId(record.getTargetAccountId())
-                .targetAccountName(targetAccount == null ? null : targetAccount.getName())
+                .targetAccountName(targetAccount == null ? "已删除账户" : targetAccount.getName())
                 .categoryId(record.getCategoryId())
                 .categoryName(category == null ? null : category.getName())
                 .amount(record.getAmount())
@@ -423,7 +425,8 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     private List<TransactionBudgetVO> toBudgetVOs(Long userId, List<TransactionBudget> budgets) {
-        Map<Long, TransactionCategory> categories = transactionCategoryMapper.selectList(null).stream()
+        Map<Long, TransactionCategory> categories = transactionCategoryMapper.selectList(
+                new LambdaQueryWrapper<TransactionCategory>().and(w -> w.isNull(TransactionCategory::getUserId).or().eq(TransactionCategory::getUserId, userId))).stream()
                 .collect(Collectors.toMap(TransactionCategory::getId, Function.identity(), (a, b) -> a));
         List<TransactionBudgetVO> vos = budgets.stream().map(budget -> {
             BigDecimal used = usedBudgetAmount(userId, budget.getBudgetMonth(), budget.getPeriodType(), budget.getCategoryId(), budget.getBudgetType());

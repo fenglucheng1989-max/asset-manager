@@ -1,19 +1,29 @@
 <template>
-  <view class="container">
-    <view class="hero-card">
-      <text class="hero-title">{{ milestones.length ? milestones.length + ' 个节点' : '暂无记录' }}</text>
-      <text class="hero-copy">自动记录净资产突破节点与自定义财务事件</text>
-    </view>
-
+  <view class="container" :style="themeVars">
     <view class="add-card">
       <input class="note-input" v-model="note" placeholder="例如：还清车贷" maxlength="200" />
-      <button class="add-btn" @click="createMilestone">添加里程碑</button>
+      <button class="add-btn" @click="createMilestone">添加</button>
     </view>
 
     <view class="timeline-card">
       <view v-for="item in milestones" :key="item.id" class="timeline-item">
         <view class="timeline-dot" :class="{ custom: item.milestoneType === 'CUSTOM' }"></view>
-        <view class="timeline-content">
+
+        <!-- Auto milestone: rich card -->
+        <view class="timeline-content" v-if="item.milestoneType !== 'CUSTOM' && tierOf(item)">
+          <view class="tier-card" :style="{ borderColor: tierOf(item).color }">
+            <view class="tier-badge" :style="{ background: tierOf(item).color }">
+              <text class="tier-icon">{{ tierOf(item).icon }}</text>
+              <text class="tier-name">{{ tierOf(item).name }}</text>
+            </view>
+            <text class="tier-note">{{ item.note }}</text>
+            <text class="tier-quote">"{{ tierOf(item).quote }}"</text>
+            <text class="timeline-date">{{ item.achievedAt }}</text>
+          </view>
+        </view>
+
+        <!-- Custom milestone: simple line -->
+        <view class="timeline-content" v-else>
           <view class="timeline-head">
             <text class="timeline-title">{{ item.note }}</text>
             <text class="timeline-type">{{ typeText(item) }}</text>
@@ -30,19 +40,35 @@
 
 <script>
 import { useInsightStore } from '../../store/insight'
+import { getThemeVars } from '../../utils/theme'
+
+const TIERS = [
+  { threshold: 10000000, icon: '⭐', name: '财务自由', color: '#c8a44e', quote: '这不是终点，而是真正的起点' },
+  { threshold: 5000000,  icon: '👑', name: '人生底气', color: '#7c6f9e', quote: '你已经拥有了说不的自由' },
+  { threshold: 2000000,  icon: '💎', name: '财富进阶', color: '#4a90d9', quote: '复利的魔力，才刚刚开始显现' },
+  { threshold: 1000000,  icon: '🏆', name: '百万跨越', color: '#d3a414', quote: '第一个百万最难，后面的路会越来越宽' },
+  { threshold: 500000,   icon: '🌿', name: '初具规模', color: '#7fa998', quote: '你已经跑赢了大多数人的起点' },
+  { threshold: 100000,   icon: '🌱', name: '崭露头角', color: '#5b7a9a', quote: '每一份积累，都是自由的种子' }
+]
 
 export default {
   data() {
     return {
       loading: false,
       note: '',
-      milestones: []
+      milestones: [],
+      themeVars: getThemeVars()
     }
   },
   onShow() {
+    this.themeVars = getThemeVars()
     this.fetchMilestones()
   },
   methods: {
+    tierOf(item) {
+      const t = Number(item.threshold || 0)
+      return TIERS.find(tier => t >= tier.threshold) || null
+    },
     async fetchMilestones() {
       this.loading = true
       try {
@@ -83,43 +109,16 @@ export default {
   min-height: 100vh;
   padding: 24rpx 22rpx calc(48rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
-}
-
-.hero-card,
-.add-card,
-.timeline-card {
-  margin-bottom: 18rpx;
-  border-radius: 18rpx;
-  border: 1rpx solid var(--app-border, #edf1f4);
-  background: var(--app-card-bg, #ffffff);
-  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
-}
-
-.hero-card {
-  padding: 34rpx;
-  color: var(--app-hero-text, #ffffff);
-  background: var(--app-hero-gradient, linear-gradient(135deg, #14202d 0%, #174a43 100%));
-}
-
-.hero-label,
-.hero-copy {
-  display: block;
-  color: var(--app-hero-sub, rgba(255, 255, 255, 0.72));
-  font-size: 24rpx;
-  line-height: 34rpx;
-}
-
-.hero-title {
-  display: block;
-  margin: 8rpx 0 10rpx;
-  color: var(--app-hero-accent, #ffd166);
-  font-size: 42rpx;
-  line-height: 52rpx;
-  font-weight: 900;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
 .add-card {
+  margin-bottom: 18rpx;
   padding: 24rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid var(--app-border, #edf1f4);
+  background: var(--app-card-bg, #ffffff);
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(15, 23, 42, 0.045));
   display: flex;
   gap: 14rpx;
   align-items: center;
@@ -138,21 +137,26 @@ export default {
 }
 
 .add-btn {
-  width: 180rpx;
+  width: 140rpx;
   margin: 0;
   height: 76rpx;
   line-height: 76rpx;
   border-radius: 14rpx;
-  background: var(--app-primary, #e8c56d);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
   font-size: 27rpx;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .timeline-card {
   padding: 10rpx 0;
+  border-radius: 20rpx;
+  border: 1rpx solid var(--app-border, #edf1f4);
+  background: var(--app-card-bg, #ffffff);
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(15, 23, 42, 0.045));
 }
 
+/* ========== Timeline Item ========== */
 .timeline-item {
   position: relative;
   display: flex;
@@ -177,16 +181,17 @@ export default {
   height: 22rpx;
   margin-top: 12rpx;
   border-radius: 50%;
-  background: var(--app-accent, #f4c95d);
-  box-shadow: 0 0 0 10rpx var(--app-soft-bg, #fff8e1);
+  background: var(--app-primary, #d3a414);
+  box-shadow: 0 0 0 10rpx var(--app-soft-bg, #eff1f5);
   flex-shrink: 0;
 }
 
 .timeline-dot.custom {
-  background: var(--app-primary, #2ebd85);
-  box-shadow: 0 0 0 10rpx var(--app-soft-bg, #ecfdf5);
+  background: var(--app-muted, #9ca3af);
+  box-shadow: 0 0 0 10rpx var(--app-soft-bg, #eff1f5);
 }
 
+/* ========== Content ========== */
 .timeline-content {
   flex: 1;
   min-width: 0;
@@ -209,8 +214,8 @@ export default {
 .timeline-type {
   padding: 6rpx 14rpx;
   border-radius: 999rpx;
-  background: var(--app-soft-bg, #eef8f4);
-  color: var(--app-primary-dark, #226f63);
+  background: var(--app-soft-bg, #eff1f5);
+  color: var(--app-muted, #7b8798);
   font-size: 22rpx;
   flex-shrink: 0;
 }
@@ -221,6 +226,54 @@ export default {
   color: var(--app-muted, #7b8798);
   font-size: 24rpx;
   line-height: 34rpx;
+}
+
+/* ========== Tier Card ========== */
+.tier-card {
+  border-radius: 18rpx;
+  border: 2rpx solid;
+  padding: 22rpx;
+  background: var(--app-card-bg-alt, #fcfdfe);
+}
+
+.tier-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  margin-bottom: 14rpx;
+}
+
+.tier-icon {
+  font-size: 28rpx;
+}
+
+.tier-name {
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.tier-note {
+  display: block;
+  color: var(--app-text, #17202a);
+  font-size: 28rpx;
+  font-weight: 800;
+  line-height: 38rpx;
+}
+
+.tier-quote {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--app-muted, #7b8798);
+  font-size: 24rpx;
+  line-height: 34rpx;
+  font-style: italic;
+}
+
+.tier-card .timeline-date {
+  margin-top: 14rpx;
 }
 
 .empty {

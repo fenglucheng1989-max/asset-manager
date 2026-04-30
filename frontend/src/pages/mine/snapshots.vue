@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container" :style="themeVars">
     <view class="summary-card">
       <view>
         <text class="summary-title">资产快照</text>
@@ -26,6 +26,7 @@
 <script>
 import { useAssetStore } from '../../store/asset'
 import { formatMoney } from '../../utils/money'
+import { getThemeVars } from '../../utils/theme'
 
 const PAGE_SIZE = 10
 
@@ -36,10 +37,12 @@ export default {
       creating: false,
       offset: 0,
       hasMore: true,
-      snapshots: []
+      snapshots: [],
+      themeVars: getThemeVars()
     }
   },
   onShow() {
+    this.themeVars = getThemeVars()
     this.reload()
   },
   methods: {
@@ -87,6 +90,7 @@ export default {
   padding: 24rpx 22rpx calc(48rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
 .summary-card,
@@ -126,7 +130,7 @@ export default {
 .load-btn {
   margin: 0;
   border-radius: 16rpx;
-  background: var(--app-primary, #2ebd85);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
   font-size: 26rpx;
 }
@@ -169,7 +173,7 @@ export default {
 }
 
 .snapshot-value {
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   font-size: 28rpx;
   line-height: 38rpx;
   font-weight: 850;
@@ -186,7 +190,7 @@ export default {
   height: 78rpx;
   line-height: 78rpx;
   background: var(--app-card-bg, #ffffff);
-  color: var(--app-primary-dark, #226f63);
-  border: 1rpx solid var(--app-border, #dce7e3);
+  color: var(--app-primary, #d3a414);
+  border: 1rpx solid var(--app-border, #edf1f4);
 }
 </style>

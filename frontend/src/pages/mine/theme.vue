@@ -15,12 +15,10 @@
       >
         <view class="card-surface">
           <view class="card-gradient" :style="{ background: themeGradients[item.value] }">
-            <view class="gradient-shape s1" :style="{ background: themeAccents[item.value] }"></view>
-            <view class="gradient-shape s2" :style="{ background: themeAccents[item.value], opacity: 0.4 }"></view>
-            <view class="gradient-shape s3 circle" :style="{ background: themeAccents[item.value] }"></view>
+            <view class="gradient-bar" :style="{ background: themeAccents[item.value] }"></view>
           </view>
           <view class="card-info">
-            <text class="card-label">{{ item.label }}</text>
+            <text class="card-label">{{ item.label }}<text v-if="item.value === 'mist-mono'" class="default-tag">默认</text></text>
             <text class="card-desc">{{ item.subtitle }}</text>
           </view>
           <view v-if="themeMode === item.value" class="check-dot">
@@ -36,19 +34,29 @@
 import { getThemeMode, getThemeOptions, getThemeVars, saveThemeMode } from '../../utils/theme'
 
 const GRADIENTS = {
-  'warm-gold':  'linear-gradient(180deg, #ffe066 0%, #fff7d1 100%)',
-  'town-night': 'linear-gradient(180deg, #1a2340 0%, #2a3a68 54%, #e8ecf4 100%)',
-  'lucky-red':  'linear-gradient(180deg, #c9383b 0%, #d9544a 56%, #fff0e8 100%)'
+  'mist-mono':   'linear-gradient(180deg, #e8ecf1 0%, #f0f3f7 50%, #f8f9fb 100%)',
+  'mint-fresh':  'linear-gradient(180deg, #c8dfd0 0%, #d8e8dc 44%, #eaf2ec 100%)',
+  'sakura-blossom': 'linear-gradient(180deg, #fce4ec 0%, #f8d5e0 44%, #fef9fa 100%)',
+  'iris-dusk':   'linear-gradient(180deg, #e0d8f0 0%, #ece4f5 48%, #f6f2fb 100%)',
+  'warm-gold':   'linear-gradient(180deg, #ffe066 0%, #fff7d1 100%)',
+  'lucky-red':   'linear-gradient(180deg, #c9383b 0%, #d9544a 56%, #fff0e8 100%)',
+  'river-snow':  'linear-gradient(180deg, #1a212b 0%, #2d3848 50%, #c8d2de 100%)',
+  'town-night':  'linear-gradient(180deg, #1a2340 0%, #2a3a68 54%, #e8ecf4 100%)',
+  'deep-ocean':  'linear-gradient(180deg, #0a1625 0%, #132238 50%, #1e3048 100%)',
+  'tycoon-gold': 'linear-gradient(180deg, #1a1814 0%, #2a2318 56%, #3d3528 100%)'
 }
 
 const ACCENTS = {
-  'warm-gold': '#d3a414', 'town-night': '#ffd166', 'lucky-red': '#ffd4a8'
+  'mist-mono': '#5b7a9a', 'mint-fresh': '#7fa998', 'sakura-blossom': '#d4788f',
+  'iris-dusk': '#7c6f9e', 'warm-gold': '#d3a414', 'lucky-red': '#ffd4a8',
+  'river-snow': '#5a7a90', 'town-night': '#ffd166', 'deep-ocean': '#4a90d9',
+  'tycoon-gold': '#c8a44e'
 }
 
 export default {
   data() {
     return {
-      themeMode: 'warm-gold',
+      themeMode: 'mist-mono',
       themeOptions: getThemeOptions(),
       themeGradients: GRADIENTS,
       themeAccents: ACCENTS,
@@ -76,6 +84,7 @@ export default {
   min-height: 100vh;
   padding: 24rpx 22rpx calc(48rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
 .page-hero {
@@ -123,46 +132,26 @@ export default {
 }
 
 .theme-card.active .card-surface {
-  border-color: var(--app-primary, #2ebd85);
+  border-color: var(--app-primary, #d3a414);
   box-shadow: var(--app-shadow-lg, 0 8rpx 28rpx rgba(26,42,58,0.08));
 }
 
 .card-gradient {
-  height: 160rpx;
+  height: 100rpx;
   position: relative;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-end;
+  padding: 0 24rpx 18rpx;
 }
 
-.gradient-shape {
-  position: absolute;
+.gradient-bar {
+  width: 72rpx;
+  height: 12rpx;
   border-radius: 999rpx;
 }
 
-.gradient-shape.s1 {
-  width: 60rpx;
-  height: 8rpx;
-  bottom: 32rpx;
-  left: 24rpx;
-}
-
-.gradient-shape.s2 {
-  width: 80rpx;
-  height: 8rpx;
-  bottom: 22rpx;
-  left: 24rpx;
-}
-
-.gradient-shape.s3.circle {
-  width: 48rpx;
-  height: 48rpx;
-  right: 28rpx;
-  bottom: 22rpx;
-}
-
 .card-info {
-  padding: 22rpx 22rpx 24rpx;
+  padding: 18rpx 22rpx 20rpx;
 }
 
 .card-label {
@@ -181,6 +170,18 @@ export default {
   color: var(--app-muted, #94a3b8);
 }
 
+.default-tag {
+  display: inline;
+  margin-left: 10rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
+  background: var(--app-soft-bg, #f6f8fb);
+  color: var(--app-muted, #94a3b8);
+  font-size: 20rpx;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
 .check-dot {
   position: absolute;
   top: 14rpx;
@@ -188,11 +189,11 @@ export default {
   width: 40rpx;
   height: 40rpx;
   border-radius: 50%;
-  background: var(--app-primary, #2ebd85);
+  background: var(--app-primary, #d3a414);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 3rpx 10rpx rgba(46,189,133,0.3);
+  box-shadow: 0 3rpx 10rpx rgba(211,164,20,0.3);
 }
 
 .check-icon {

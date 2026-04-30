@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container" :style="themeVars">
     <view class="form-card">
       <!-- Period Type -->
       <view class="form-row">
@@ -77,6 +77,7 @@
 <script>
 import { useTransactionStore } from '../../store/transaction'
 import { formatMoney } from '../../utils/money'
+import { getThemeVars } from '../../utils/theme'
 
 export default {
   data() {
@@ -102,7 +103,8 @@ export default {
         warningRate: 0.8,
         remark: ''
       },
-      selectedCategoryId: null
+      selectedCategoryId: null,
+      themeVars: getThemeVars()
     }
   },
   computed: {
@@ -131,6 +133,7 @@ export default {
     }
   },
   onShow() {
+    this.themeVars = getThemeVars()
     this.loadCategories()
     if (this.editingId) {
       this.loadBudget()
@@ -281,6 +284,7 @@ export default {
   min-height: 100vh;
   padding: 24rpx;
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
 .form-card {
@@ -308,14 +312,14 @@ export default {
 }
 
 .form-input {
-  color: var(--app-muted, #334155);
+  color: var(--app-text, #17202a);
   font-size: 30rpx;
   text-align: right;
   flex: 1;
 }
 
 .picker-text {
-  color: var(--app-muted, #334155);
+  color: var(--app-text, #17202a);
   font-size: 30rpx;
   text-align: right;
 }
@@ -363,7 +367,7 @@ export default {
 }
 
 .warning-opt.active {
-  background: var(--app-primary-dark, #8f6b00);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
 }
 

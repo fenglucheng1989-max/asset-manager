@@ -9,6 +9,34 @@
         <text class="item-title">隐私政策</text>
         <text class="item-arrow">›</text>
       </view>
+      <view class="section-item" @click="switchTo('donate')">
+        <text class="item-title">打赏支持</text>
+        <text class="item-arrow">›</text>
+      </view>
+    </view>
+
+    <view v-else-if="section === 'donate'" class="content-card">
+      <text class="section-title">请作者喝杯咖啡</text>
+      <text class="body intro">如果这个应用对你有帮助，欢迎打赏支持，让我有动力持续维护和改进。</text>
+      <view class="donate-row">
+        <view class="donate-item">
+          <image class="donate-qr" src="/static/donate-wechat.png" mode="aspectFit" @error="onImageError('wechat')" v-if="!imgFailed.wechat" />
+          <view class="donate-qr donate-placeholder" v-else>
+            <text class="donate-placeholder-text">微信收款码</text>
+            <text class="donate-placeholder-hint">请替换 /static/donate-wechat.png</text>
+          </view>
+          <text class="donate-label">微信打赏</text>
+        </view>
+        <view class="donate-item">
+          <image class="donate-qr" src="/static/donate-alipay.png" mode="aspectFit" @error="onImageError('alipay')" v-if="!imgFailed.alipay" />
+          <view class="donate-qr donate-placeholder" v-else>
+            <text class="donate-placeholder-text">支付宝收款码</text>
+            <text class="donate-placeholder-hint">请替换 /static/donate-alipay.png</text>
+          </view>
+          <text class="donate-label">支付宝打赏</text>
+        </view>
+      </view>
+      <text class="body thanks">感谢每一份支持 ❤️</text>
     </view>
 
     <view v-else-if="section !== 'feedback'" class="content-card">
@@ -117,6 +145,10 @@ export default {
       feedbackForm: {
         content: '',
         contact: ''
+      },
+      imgFailed: {
+        wechat: false,
+        alipay: false
       }
     }
   },
@@ -164,6 +196,9 @@ export default {
         })
       }
       return sections.length > 0 ? sections : [{ title: '说明', body: String(content || '') }]
+    },
+    onImageError(type) {
+      this.imgFailed[type] = true
     },
     handleTypeChange(event) {
       this.feedbackTypeIndex = Number(event.detail.value)
@@ -339,8 +374,58 @@ export default {
   height: 84rpx;
   line-height: 84rpx;
   border-radius: 16rpx;
-  background: var(--app-primary, #2ebd85);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
   font-size: 30rpx;
+}
+
+.donate-row {
+  display: flex;
+  justify-content: center;
+  gap: 48rpx;
+  margin: 36rpx 0 28rpx;
+}
+
+.donate-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.donate-qr {
+  width: 280rpx;
+  height: 280rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid var(--app-border, #edf1f4);
+  background: var(--app-input-bg, #f6f8fb);
+}
+
+.donate-label {
+  font-size: 25rpx;
+  color: var(--app-muted, #64748b);
+}
+
+.donate-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.donate-placeholder-text {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--app-muted, #64748b);
+}
+
+.donate-placeholder-hint {
+  font-size: 22rpx;
+  color: var(--app-faint, #94a3b8);
+}
+
+.thanks {
+  text-align: center;
 }
 </style>

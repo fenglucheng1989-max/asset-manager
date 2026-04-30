@@ -2,32 +2,37 @@
   <view class="container" :style="themeVars">
     <view v-if="isLoggedIn" class="profile-section">
       <view class="profile-card">
-        <view class="profile-header">
-          <view class="avatar">
-            <text class="avatar-text">{{ username.substring(0, 1).toUpperCase() }}</text>
+        <view class="profile-main">
+          <view
+            class="profile-avatar"
+            :style="{ backgroundImage: avatarUrl ? 'url(' + avatarUrl + ')' : 'none' }"
+            @click="goAccountSettings"
+          >
+            <text v-if="!avatarUrl" class="profile-avatar-text">{{ username.substring(0, 1).toUpperCase() }}</text>
+            <view class="profile-avatar-badge">
+              <text class="profile-avatar-badge-text">+</text>
+            </view>
           </view>
           <view class="profile-copy">
-            <text class="username">{{ username }}</text>
-            <text class="profile-email">{{ profileEmail }}</text>
-            <text class="profile-subtitle">注册于 {{ registeredDate }}</text>
+            <text class="profile-name">{{ username }}</text>
+            <text class="profile-info">注册于 {{ registeredDate }}</text>
+            <text class="profile-hint">点击头像管理账号资料</text>
           </view>
         </view>
       </view>
 
-      <view class="net-card" @click="goHome">
-        <view>
-          <text class="net-label">净资产</text>
-          <text class="net-value">{{ formatMoney(overview.netWorth) }}</text>
-        </view>
-        <text class="net-arrow">›</text>
-      </view>
-
+      <text class="menu-section-title">资产工具</text>
       <view class="menu-group">
         <view class="menu-item" @click="goTrend">
-          <text class="menu-title">资产趋势</text>
+          <view class="menu-icon"><text class="menu-icon-text">↗</text></view>
+          <view class="menu-copy">
+            <text class="menu-title">资产趋势</text>
+            <text class="menu-subtitle">查看净资产和分类资产走势</text>
+          </view>
           <text class="menu-arrow">›</text>
         </view>
         <view class="menu-item" @click="goSnapshotManage">
+          <view class="menu-icon"><text class="menu-icon-text">◉</text></view>
           <view class="menu-copy">
             <text class="menu-title">快照管理</text>
             <text class="menu-subtitle">查看历史快照或记录今日资产</text>
@@ -36,8 +41,10 @@
         </view>
       </view>
 
+      <text class="menu-section-title">财务洞察</text>
       <view class="menu-group">
         <view class="menu-item" @click="goHealth">
+          <view class="menu-icon"><text class="menu-icon-text">♡</text></view>
           <view class="menu-copy">
             <text class="menu-title">财务健康</text>
             <text class="menu-subtitle">查看评级、指标解释和改进建议</text>
@@ -45,6 +52,7 @@
           <text class="menu-arrow">›</text>
         </view>
         <view class="menu-item" @click="goSummary">
+          <view class="menu-icon"><text class="menu-icon-text">≡</text></view>
           <view class="menu-copy">
             <text class="menu-title">财务月报</text>
             <text class="menu-subtitle">基于已记录流水生成月度摘要</text>
@@ -52,6 +60,7 @@
           <text class="menu-arrow">›</text>
         </view>
         <view class="menu-item" @click="goMilestones">
+          <view class="menu-icon"><text class="menu-icon-text">★</text></view>
           <view class="menu-copy">
             <text class="menu-title">资产里程碑</text>
             <text class="menu-subtitle">记录净资产节点和自定义事件</text>
@@ -60,8 +69,10 @@
         </view>
       </view>
 
+      <text class="menu-section-title">系统服务</text>
       <view class="menu-group">
         <view class="menu-item" @click="goSettings">
+          <view class="menu-icon"><text class="menu-icon-text">⚙</text></view>
           <view class="menu-copy">
             <text class="menu-title">设置</text>
             <text class="menu-subtitle">视觉装扮、默认货币、数据管理和账号设置</text>
@@ -69,6 +80,7 @@
           <text class="menu-arrow">›</text>
         </view>
         <view class="menu-item" @click="goFeedback">
+          <view class="menu-icon"><text class="menu-icon-text">✉</text></view>
           <view class="menu-copy">
             <text class="menu-title">意见反馈</text>
             <text class="menu-subtitle">问题、建议和导出异常</text>
@@ -76,15 +88,16 @@
           <text class="menu-arrow">›</text>
         </view>
         <view class="menu-item" @click="goAbout('about')">
+          <view class="menu-icon"><text class="menu-icon-text">i</text></view>
           <view class="menu-copy">
             <text class="menu-title">关于</text>
             <text class="menu-subtitle">用户协议、隐私政策等</text>
           </view>
+          <text class="menu-version">v{{ appVersion }}</text>
           <text class="menu-arrow">›</text>
         </view>
       </view>
 
-      <button class="logout-btn" @click="handleLogout">退出登录</button>
     </view>
 
     <view v-else class="login-section">
@@ -129,18 +142,8 @@
 
 <script>
 import CustomTabBar from '../../custom-tab-bar/index.vue'
-import { useAssetStore } from '../../store/asset'
 import { useUserStore } from '../../store/user'
-import { formatMoney } from '../../utils/money'
 import { getThemeMode, getThemeVars } from '../../utils/theme'
-
-const DEFAULT_OVERVIEW = {
-  totalAsset: 0,
-  totalLiability: 0,
-  netWorth: 0,
-  accountCount: 0,
-  lastUpdateTime: null
-}
 
 export default {
   components: { CustomTabBar },
@@ -161,14 +164,12 @@ export default {
       isLoggedIn: false,
       username: 'preview',
       profile: null,
-      overview: { ...DEFAULT_OVERVIEW },
+      avatarUrl: '',
+      appVersion: '1.0.0',
       themeVars: getThemeVars()
     }
   },
   computed: {
-    profileEmail() {
-      return this.profile && this.profile.email ? this.profile.email : '未设置邮箱'
-    },
     registeredDate() {
       const value = this.profile && this.profile.createdAt ? this.profile.createdAt : ''
       if (!value) return '--'
@@ -181,7 +182,6 @@ export default {
     this.fetchLegalDocuments()
   },
   methods: {
-    formatMoney,
     refreshUser() {
       const token = uni.getStorageSync('token') || ''
       const username = uni.getStorageSync('username') || 'preview'
@@ -190,29 +190,22 @@ export default {
       this.isLoggedIn = !!token
       this.username = username
       this.profile = profile
+      this.avatarUrl = (profile && profile.avatarUrl) || ''
 
       try {
         const userStore = useUserStore()
         this.isLoggedIn = userStore.isLoggedIn
         this.username = userStore.username || username
         this.profile = userStore.profile || profile
+        this.avatarUrl = (userStore.profile && userStore.profile.avatarUrl) || this.avatarUrl
         if (this.isLoggedIn) {
           userStore.fetchProfile().then(() => {
             this.profile = userStore.profile
+            this.avatarUrl = (userStore.profile && userStore.profile.avatarUrl) || ''
           })
-          this.fetchOverview()
         }
       } catch (error) {
         console.error('Read user store failed:', error)
-      }
-    },
-    async fetchOverview() {
-      try {
-        const assetStore = useAssetStore()
-        await assetStore.fetchOverview()
-        this.overview = { ...DEFAULT_OVERVIEW, ...(assetStore.overview || {}) }
-      } catch (error) {
-        this.overview = { ...DEFAULT_OVERVIEW }
       }
     },
     async handleSubmit() {
@@ -269,28 +262,6 @@ export default {
         this.legalDocuments = { terms: null, privacy: null }
       }
     },
-    handleLogout() {
-      uni.showModal({
-        title: '确认退出',
-        content: '确定要退出登录吗？',
-        success: (result) => {
-          if (!result.confirm) return
-
-          try {
-            const userStore = useUserStore()
-            userStore.logout()
-          } catch (error) {
-            uni.removeStorageSync('token')
-            uni.removeStorageSync('username')
-          }
-          this.refreshUser()
-          uni.showToast({ title: '已退出', icon: 'success' })
-        }
-      })
-    },
-    goHome() {
-      uni.switchTab({ url: '/pages/index/index' })
-    },
     goTrend() {
       uni.navigateTo({ url: '/pages/trend/trend' })
     },
@@ -309,6 +280,9 @@ export default {
     goFeedback() {
       uni.navigateTo({ url: '/pages/mine/about?section=feedback' })
     },
+    goAccountSettings() {
+      uni.navigateTo({ url: '/pages/mine/account' })
+    },
     goSettings() {
       uni.navigateTo({ url: '/pages/mine/settings' })
     },
@@ -324,6 +298,7 @@ export default {
   padding: 24rpx 22rpx calc(144rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
 .profile-section,
@@ -332,9 +307,7 @@ export default {
 }
 
 .profile-card,
-.net-card,
 .menu-group,
-.about-card,
 .login-card {
   background: var(--app-card-bg, #ffffff);
   border-radius: 18rpx;
@@ -343,141 +316,116 @@ export default {
 }
 
 .profile-card {
-  position: relative;
-  overflow: hidden;
-  padding: 30rpx;
-  margin-bottom: 18rpx;
-  background: var(--app-outfit-header-bg, var(--app-card-bg, #ffffff)) !important;
-  color: var(--app-outfit-header-text, var(--app-text, #17202a));
-  border-color: transparent !important;
+  padding: 30rpx 30rpx 28rpx;
+  margin-bottom: 20rpx;
 }
 
-.profile-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--app-outfit-header-pattern, none);
-  opacity: 0.82;
-  pointer-events: none;
-}
-
-.profile-header {
-  position: relative;
-  z-index: 1;
+.profile-main {
   display: flex;
   align-items: center;
   gap: 24rpx;
+  min-width: 0;
 }
 
-.avatar {
-  width: 104rpx;
-  height: 104rpx;
-  border-radius: 22rpx;
-  background: rgba(255, 255, 255, 0.70);
-  border: 1rpx solid rgba(255, 255, 255, 0.52);
+.profile-avatar {
+  position: relative;
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 50%;
+  background-color: var(--app-primary, #d3a414);
+  background-size: cover;
+  background-position: center;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 5rpx solid var(--app-card-bg, #ffffff);
+  box-shadow:
+    0 0 0 2rpx var(--app-border, #edf1f4),
+    0 12rpx 26rpx rgba(15, 23, 42, 0.13);
   flex-shrink: 0;
 }
 
-.avatar-text {
-  color: var(--app-outfit-header-accent, var(--app-primary, #2ebd85));
-  font-size: 42rpx;
-  font-weight: 850;
+.profile-avatar-text {
+  color: #ffffff;
+  font-size: 46rpx;
+  font-weight: 700;
+}
+
+.profile-avatar-badge {
+  position: absolute;
+  right: -2rpx;
+  bottom: -2rpx;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 50%;
+  background: var(--app-primary, #d3a414);
+  border: 4rpx solid var(--app-card-bg, #ffffff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6rpx 14rpx rgba(15, 23, 42, 0.14);
+}
+
+.profile-avatar-badge-text {
+  color: #ffffff;
+  font-size: 26rpx;
+  line-height: 26rpx;
+  font-weight: 700;
 }
 
 .profile-copy {
-  min-width: 0;
   flex: 1;
+  min-width: 0;
 }
 
-.username {
+.profile-name {
   display: block;
   font-size: 36rpx;
   line-height: 46rpx;
-  font-weight: 850;
-  color: var(--app-outfit-header-text, var(--app-text, #17202a));
+  font-weight: 700;
+  color: var(--app-text, #17202a);
   margin-bottom: 8rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
 }
 
-.profile-email,
-.profile-subtitle,
-.menu-subtitle {
+.profile-info {
   display: block;
+  font-size: 24rpx;
+  line-height: 34rpx;
   color: var(--app-muted, #7b8798);
-  font-size: 24rpx;
-  line-height: 34rpx;
 }
 
-.profile-card .profile-email,
-.profile-card .profile-subtitle {
-  color: var(--app-outfit-header-sub, var(--app-muted, #7b8798));
-}
-
-.net-card {
-  position: relative;
-  overflow: hidden;
-  padding: 28rpx 30rpx;
-  margin-bottom: 18rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--app-outfit-header-bg, var(--app-hero-gradient, linear-gradient(135deg, #14202d 0%, #174a43 100%)));
-}
-
-.net-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--app-outfit-header-pattern, none);
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-.net-card > view,
-.net-card > text {
-  position: relative;
-  z-index: 1;
-}
-
-.net-label {
+.profile-hint {
   display: block;
-  color: var(--app-outfit-header-sub, var(--app-hero-sub, rgba(255, 255, 255, 0.72)));
-  font-size: 24rpx;
-  line-height: 34rpx;
+  margin-top: 6rpx;
+  font-size: 23rpx;
+  line-height: 32rpx;
+  color: var(--app-faint, #94a3b8);
 }
 
-.net-value {
+.menu-section-title {
   display: block;
-  margin-top: 8rpx;
-  color: var(--app-outfit-header-accent, var(--app-hero-accent, #ffd166));
-  font-size: 42rpx;
-  line-height: 52rpx;
-  font-weight: 850;
-  word-break: break-all;
-}
-
-.net-arrow {
-  color: var(--app-outfit-header-sub, var(--app-hero-sub, rgba(255, 255, 255, 0.72)));
-  font-size: 48rpx;
-  line-height: 48rpx;
+  margin: 0 10rpx 12rpx;
+  color: var(--app-muted, #7b8798);
+  font-size: 23rpx;
+  line-height: 32rpx;
+  font-weight: 600;
 }
 
 .menu-group {
-  margin-bottom: 18rpx;
+  margin-bottom: 24rpx;
   overflow: hidden;
 }
 
 .menu-item {
-  min-height: 88rpx;
-  padding: 0 28rpx;
+  min-height: 98rpx;
+  padding: 0 26rpx;
   display: flex;
   align-items: center;
-  gap: 14rpx;
+  gap: 18rpx;
   border-bottom: 1rpx solid var(--app-border, #edf1f4);
 }
 
@@ -485,16 +433,23 @@ export default {
   border-bottom: none;
 }
 
-.menu-item.disabled {
-  opacity: 0.72;
+.menu-icon {
+  width: 50rpx;
+  height: 50rpx;
+  border-radius: 50%;
+  background: var(--app-card-bg-alt, var(--app-soft-bg, #ecfdf5));
+  border: 1rpx solid var(--app-border, #edf1f4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.menu-title {
-  color: var(--app-text, #17202a);
-  font-size: 29rpx;
-  line-height: 38rpx;
-  font-weight: 760;
-  flex: 1;
+.menu-icon-text {
+  color: var(--app-primary, #d3a414);
+  font-size: 27rpx;
+  line-height: 27rpx;
+  font-weight: 600;
 }
 
 .menu-copy {
@@ -503,66 +458,32 @@ export default {
   padding: 18rpx 0;
 }
 
-.menu-arrow,
-.inline-picker {
+.menu-title {
+  display: block;
+  color: var(--app-text, #17202a);
+  font-size: 29rpx;
+  line-height: 38rpx;
+  font-weight: 600;
+}
+
+.menu-subtitle {
+  display: block;
+  margin-top: 4rpx;
+  color: var(--app-muted, #7b8798);
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.menu-version {
   color: var(--app-faint, #94a3b8);
-  font-size: 32rpx;
+  font-size: 24rpx;
   flex-shrink: 0;
 }
 
-.inline-picker {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  color: var(--app-primary-dark, #226f63);
-  font-size: 26rpx;
-  font-weight: 800;
-}
-
-.about-card {
-  padding: 26rpx 28rpx;
-  margin-bottom: 22rpx;
-}
-
-.about-title {
-  display: block;
-  color: var(--app-text, #17202a);
-  font-size: 28rpx;
-  line-height: 38rpx;
-  font-weight: 800;
-  margin-bottom: 14rpx;
-}
-
-.about-links {
-  display: flex;
-  align-items: center;
-  gap: 14rpx;
-  color: var(--app-primary-dark, #226f63);
-  font-size: 24rpx;
-  line-height: 34rpx;
-}
-
-.about-divider {
-  color: var(--app-faint, #c8d1da);
-}
-
-.feedback {
-  display: block;
-  margin-top: 14rpx;
-  color: var(--app-muted, #64748b);
-  font-size: 24rpx;
-  line-height: 34rpx;
-}
-
-.logout-btn {
-  margin: 0;
-  height: 86rpx;
-  line-height: 86rpx;
-  border-radius: 18rpx;
-  background: var(--app-card-bg, #ffffff);
-  font-size: 30rpx;
-  color: var(--app-danger, #d94a62);
-  border: 1rpx solid var(--app-border, #edf1f4);
+.menu-arrow {
+  color: var(--app-faint, #94a3b8);
+  font-size: 32rpx;
+  flex-shrink: 0;
 }
 
 .login-card {
@@ -615,12 +536,12 @@ export default {
 }
 
 .legal-check.checked {
-  border-color: var(--app-primary, #2ebd85);
-  background: var(--app-soft-bg, #ecfdf5);
+  border-color: var(--app-primary, #d3a414);
+  background: var(--app-soft-bg, #f6f8fb);
 }
 
 .legal-check-mark {
-  color: var(--app-primary, #2ebd85);
+  color: var(--app-primary, #d3a414);
   font-size: 24rpx;
   line-height: 24rpx;
   font-weight: 900;
@@ -633,12 +554,12 @@ export default {
 }
 
 .legal-link {
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   font-weight: 800;
 }
 
 .login-btn {
-  background: var(--app-primary, #2ebd85);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
   border-radius: 16rpx;
   height: 88rpx;
@@ -655,7 +576,7 @@ export default {
 }
 
 .switch-text {
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   font-size: 28rpx;
 }
 </style>

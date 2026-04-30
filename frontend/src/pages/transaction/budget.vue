@@ -1,87 +1,58 @@
 <template>
-  <view class="container">
-    <!-- Period Switcher -->
-    <view class="period-switcher">
-      <text class="period-arrow" @click="shiftPeriod(-1)">‹</text>
-      <view class="period-center">
-        <text class="period-label">{{ periodTitle }}</text>
-        <text class="period-sub">预算只统计支出记录</text>
-      </view>
-      <text class="period-arrow" @click="shiftPeriod(1)">›</text>
-    </view>
-
-    <!-- Tab Tabs -->
-    <view class="tabs-row">
-      <view
-        v-for="tab in tabs"
-        :key="tab.key"
-        :class="['tab', { active: activeTab === tab.key }]"
-        @click="switchTab(tab.key)"
-      >
-        {{ tab.label }}
-      </view>
-    </view>
-
-    <!-- Summary Card -->
-    <view class="summary-card" :class="{ warning: summaryWarning, danger: summaryDanger }">
-      <view class="summary-head">
-        <text class="summary-label">{{ summaryLabel }}</text>
-        <text class="summary-total">预算 {{ formatMoney(summaryTotal) }}</text>
-      </view>
-      <view class="progress-track">
-        <view
-          class="progress-fill"
-          :class="{ warning: summaryWarning, danger: summaryDanger }"
-          :style="{ width: summaryPercent }"
-        ></view>
-      </view>
-      <view class="summary-foot">
-        <text>已用 {{ formatMoney(summaryUsed) }}</text>
-        <text>{{ summaryDanger ? '超支 ' + formatMoney(-summaryRemaining) : '剩余 ' + formatMoney(summaryRemaining) }}</text>
-      </view>
-    </view>
-
-    <!-- Warning Section -->
-    <view v-if="warningItems.length" class="section-label warning-label">
-      ⚠️ 超支预警 ({{ warningItems.length }})
-    </view>
-    <view v-if="warningItems.length" class="budget-list warning-list">
-      <view
-        class="budget-item danger"
-        :class="{ subordinate: item.subordinate }"
-        v-for="item in warningItems"
-        :key="item.id"
-        @click="editBudget(item)"
-        @longpress="deleteBudget(item)"
-      >
-        <view class="budget-head">
-          <view>
-            <text class="budget-name">{{ item.categoryName }}</text>
-            <text class="budget-state danger">超出预算</text>
-            <text v-if="item.subordinate" class="sub-tag">已涵盖</text>
+  <view class="container" :style="themeVars">
+    <!-- Unified hero card: date + tabs on one row, then summary -->
+    <view class="hero-card">
+      <view class="hero-nav-row">
+        <view class="date-nav-group">
+          <button class="date-nav-btn" :disabled="activeTab === 'all'" @click="shiftPeriod(-1)">‹</button>
+          <view class="date-pill">
+            <view class="date-pill-icon"></view>
+            <text class="date-pill-text">{{ periodTitle }}</text>
           </view>
-          <text class="budget-money">{{ formatMoney(item.usedAmount) }} / {{ formatMoney(item.amount) }}</text>
+          <button class="date-nav-btn" :disabled="activeTab === 'all'" @click="shiftPeriod(1)">›</button>
+        </view>
+
+        <view class="hero-tabs">
+          <view
+            v-for="tab in tabs"
+            :key="tab.key"
+            :class="['hero-tab', { active: activeTab === tab.key }]"
+            @click="switchTab(tab.key)"
+          >
+            {{ tab.label }}
+          </view>
+        </view>
+      </view>
+
+      <view class="hero-summary" :class="{ warning: summaryWarning, danger: summaryDanger }">
+        <view class="summary-head">
+          <text class="summary-label">{{ summaryLabel }}</text>
+          <text class="summary-total">预算 {{ formatMoney(summaryTotal) }}</text>
         </view>
         <view class="progress-track">
-          <view class="progress-fill danger" :style="{ width: percent(item) }"></view>
+          <view
+            class="progress-fill"
+            :class="{ warning: summaryWarning, danger: summaryDanger }"
+            :style="{ width: summaryPercent }"
+          ></view>
         </view>
-        <text class="remaining danger">超支 {{ formatMoney(-item.remainingAmount) }}</text>
+        <view class="summary-foot">
+          <text>已用 {{ formatMoney(summaryUsed) }}</text>
+          <text>{{ summaryDanger ? '超支 ' + formatMoney(-summaryRemaining) : '剩余 ' + formatMoney(summaryRemaining) }}</text>
+        </view>
+        <text class="period-note">预算只统计支出记录</text>
       </view>
     </view>
 
-    <!-- Normal Section -->
-    <view v-if="normalItems.length" class="section-label">
-      正常预算 ({{ normalItems.length }})
-      <text v-if="activeTab === 'all'" class="section-sort">按月份倒序</text>
-    </view>
-    <view v-if="activeTab === 'all'" class="all-list">
+    <!-- Unified Budget List -->
+    <view v-if="activeTab === 'all'" class="budget-list">
       <view v-for="group in groupedBudgets" :key="group.month" class="month-group">
         <view class="month-group-header">
           <text class="month-group-title">{{ group.month }}</text>
         </view>
         <view
           class="budget-item"
-          :class="{ subordinate: item.subordinate }"
+          :class="[itemStateClass(item), { subordinate: item.subordinate }]"
           v-for="item in group.items"
           :key="item.id"
           @click="editBudget(item)"
@@ -90,23 +61,24 @@
           <view class="budget-head">
             <view>
               <text class="budget-name">{{ item.categoryName }}</text>
-              <text class="budget-state">{{ item.warning ? '接近预警线' : '使用正常' }}</text>
+              <text :class="['budget-state', itemStateClass(item)]">{{ itemStateLabel(item) }}</text>
               <text v-if="item.subordinate" class="sub-tag">已涵盖</text>
             </view>
             <text class="budget-money">{{ formatMoney(item.usedAmount) }} / {{ formatMoney(item.amount) }}</text>
           </view>
           <view class="progress-track">
-            <view class="progress-fill" :style="{ width: percent(item) }"></view>
+            <view class="progress-fill" :class="itemStateClass(item)" :style="{ width: percent(item) }"></view>
           </view>
-          <text class="remaining">剩余 {{ formatMoney(item.remainingAmount) }}</text>
+          <text :class="['remaining', itemStateClass(item)]">{{ itemRemainingText(item) }}</text>
         </view>
       </view>
     </view>
-    <view v-else>
+
+    <view v-else-if="budgets.length" class="budget-list">
       <view
         class="budget-item"
-        :class="{ subordinate: item.subordinate }"
-        v-for="item in normalItems"
+        :class="[itemStateClass(item), { subordinate: item.subordinate }]"
+        v-for="item in sortedBudgets"
         :key="item.id"
         @click="editBudget(item)"
         @longpress="deleteBudget(item)"
@@ -114,15 +86,15 @@
         <view class="budget-head">
           <view>
             <text class="budget-name">{{ item.categoryName }}</text>
-            <text class="budget-state" :class="{ warning: item.warning }">{{ item.warning ? '接近预警线' : '使用正常' }}</text>
+            <text :class="['budget-state', itemStateClass(item)]">{{ itemStateLabel(item) }}</text>
             <text v-if="item.subordinate" class="sub-tag">已涵盖</text>
           </view>
           <text class="budget-money">{{ formatMoney(item.usedAmount) }} / {{ formatMoney(item.amount) }}</text>
         </view>
         <view class="progress-track">
-          <view class="progress-fill" :class="{ warning: item.warning }" :style="{ width: percent(item) }"></view>
+          <view class="progress-fill" :class="itemStateClass(item)" :style="{ width: percent(item) }"></view>
         </view>
-        <text class="remaining">剩余 {{ formatMoney(item.remainingAmount) }}</text>
+        <text :class="['remaining', itemStateClass(item)]">{{ itemRemainingText(item) }}</text>
       </view>
     </view>
 
@@ -144,6 +116,7 @@
 import CustomTabBar from '../../custom-tab-bar/index.vue'
 import { useTransactionStore } from '../../store/transaction'
 import { formatMoney } from '../../utils/money'
+import { getThemeVars } from '../../utils/theme'
 
 export default {
   components: { CustomTabBar },
@@ -159,7 +132,8 @@ export default {
       currentYear: new Date().getFullYear(),
       currentMonthKey: '',
       budgets: [],
-      categories: []
+      categories: [],
+      themeVars: getThemeVars()
     }
   },
   computed: {
@@ -209,11 +183,13 @@ export default {
       if (this.summaryWarning) return '接近预算上限'
       return '预算使用情况'
     },
-    warningItems() {
-      return this.budgets.filter(i => i.warning || i.remainingAmount < 0)
-    },
-    normalItems() {
-      return this.budgets.filter(i => !i.warning && i.remainingAmount >= 0)
+    sortedBudgets() {
+      const copy = [...this.budgets]
+      return copy.sort((a, b) => {
+        const sa = a.remainingAmount < 0 ? 2 : (a.warning ? 1 : 0)
+        const sb = b.remainingAmount < 0 ? 2 : (b.warning ? 1 : 0)
+        return sb - sa
+      })
     },
     groupedBudgets() {
       const groups = {}
@@ -222,9 +198,10 @@ export default {
         if (!groups[month]) groups[month] = []
         groups[month].push(item)
       })
+      const severity = (i) => i.remainingAmount < 0 ? 2 : (i.warning ? 1 : 0)
       return Object.entries(groups)
         .sort((a, b) => b[0].localeCompare(a[0]))
-        .map(([month, items]) => ({ month, items }))
+        .map(([month, items]) => ({ month, items: items.sort((a, b) => severity(b) - severity(a)) }))
     }
   },
   onLoad(options = {}) {
@@ -239,6 +216,7 @@ export default {
     }
   },
   onShow() {
+    this.themeVars = getThemeVars()
     this.loadData()
   },
   methods: {
@@ -273,7 +251,6 @@ export default {
         const [y, m] = this.currentMonthKey.split('-').map(Number)
         this.currentMonthKey = this.formatMonth(new Date(y, m - 1 + delta, 1))
       }
-      // 'all' tab doesn't shift
       if (this.activeTab !== 'all') {
         this.loadData()
       }
@@ -283,6 +260,20 @@ export default {
     },
     percent(item) {
       return `${Math.min(100, Math.round(Number(item.usageRate || 0) * 100))}%`
+    },
+    itemStateClass(item) {
+      if (item.remainingAmount < 0) return 'danger'
+      if (item.warning) return 'warning'
+      return ''
+    },
+    itemStateLabel(item) {
+      if (item.remainingAmount < 0) return '超出预算'
+      if (item.warning) return '接近预警线'
+      return '使用正常'
+    },
+    itemRemainingText(item) {
+      if (item.remainingAmount < 0) return `超支 ${this.formatMoney(-item.remainingAmount)}`
+      return `剩余 ${this.formatMoney(item.remainingAmount)}`
     },
     goCreate() {
       const params = []
@@ -322,103 +313,143 @@ export default {
   min-height: 100vh;
   padding: 24rpx 24rpx calc(120rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
-/* Period Switcher */
-.period-switcher {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* ========== Hero Card (period nav + tabs + summary) ========== */
+.hero-card {
   background: var(--app-card-bg, #ffffff);
   border: 1rpx solid var(--app-border, #edf1f4);
   border-radius: 20rpx;
-  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
-  padding: 0 28rpx;
-  height: 120rpx;
-  margin-bottom: 16rpx;
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(15, 23, 42, 0.045));
+  margin-bottom: 22rpx;
+  overflow: hidden;
 }
 
-.period-arrow {
-  width: 62rpx;
-  height: 62rpx;
+/* Nav row: date + tabs on one line */
+.hero-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 18rpx 14rpx;
+  gap: 10rpx;
+}
+
+/* Date navigation group: ‹ pill › */
+.date-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  flex-shrink: 0;
+}
+
+.date-nav-btn {
+  width: 44rpx;
+  height: 44rpx;
   border-radius: 50%;
-  background: var(--app-soft-bg, #f2f6f4);
-  color: var(--app-primary-dark, #226f63);
+  background: transparent;
+  color: var(--app-primary, #d3a414);
+  border: 1rpx solid var(--app-border, #edf1f4);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 44rpx;
-}
-
-.period-center {
-  text-align: center;
-}
-
-.period-label {
-  display: block;
-  color: var(--app-text, #17202a);
-  font-size: 34rpx;
-  font-weight: 850;
-}
-
-.period-sub {
-  display: block;
-  color: var(--app-muted, #7b8798);
-  font-size: 24rpx;
-  margin-top: 4rpx;
-}
-
-/* Tabs */
-.tabs-row {
-  display: flex;
-  gap: 12rpx;
-  margin-bottom: 18rpx;
-}
-
-.tab {
-  flex: 1;
-  height: 72rpx;
-  line-height: 72rpx;
-  text-align: center;
-  border-radius: 999rpx;
-  background: var(--app-soft-bg, #f2f6f4);
-  color: var(--app-muted, #7b8798);
   font-size: 28rpx;
-  font-weight: 650;
-  transition: all 0.2s;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+  transition: opacity 0.2s;
 }
 
-.tab.active {
+.date-nav-btn[disabled] {
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+/* Compact date pill */
+.date-pill {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: var(--app-soft-bg, #eff1f5);
+  flex-shrink: 0;
+}
+
+.date-pill-icon {
+  width: 24rpx;
+  height: 22rpx;
+  border: 2rpx solid var(--app-primary, #d3a414);
+  border-radius: 3rpx;
+  position: relative;
+  flex-shrink: 0;
+  margin-top: -2rpx;
+}
+
+.date-pill-icon::before {
+  content: '';
+  position: absolute;
+  top: -3rpx;
+  left: -2rpx;
+  right: -2rpx;
+  height: 5rpx;
+  background: var(--app-primary, #d3a414);
+  border-radius: 3rpx 3rpx 0 0;
+}
+
+.date-pill-text {
+  color: var(--app-text, #17202a);
+  font-size: 26rpx;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Tab pills — compact, right side */
+.hero-tabs {
+  display: flex;
+  gap: 4rpx;
+  flex-shrink: 0;
+}
+
+.hero-tab {
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  font-weight: 650;
+  background: transparent;
+  color: var(--app-muted, #7b8798);
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+
+.hero-tab.active {
   background: var(--app-primary, #d3a414);
   color: #ffffff;
   font-weight: 800;
 }
 
-/* Summary Card */
-.summary-card {
-  background: var(--app-card-bg, #ffffff);
-  border: 1rpx solid var(--app-border, #edf1f4);
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 22rpx;
-  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
+/* Summary section */
+.hero-summary {
+  padding: 18rpx 26rpx 26rpx;
+  border-top: 1rpx solid var(--app-border, #edf1f4);
+  transition: background 0.25s, border-color 0.25s;
 }
 
-.summary-card.warning {
-  border-color: var(--app-warning, #f59e0b);
+.hero-summary.warning {
   background: var(--app-warning-bg, #fffbeb);
+  border-top-color: var(--app-warning-border, #f4dfaa);
 }
 
-.summary-card.danger {
-  border-color: var(--app-danger, #d94a62);
+.hero-summary.danger {
   background: var(--app-danger-bg, #fef2f2);
+  border-top-color: var(--app-danger-border, #fecaca);
 }
 
 .summary-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 18rpx;
+  margin-bottom: 14rpx;
 }
 
 .summary-label {
@@ -427,8 +458,8 @@ export default {
   font-weight: 650;
 }
 
-.summary-card.warning .summary-label { color: var(--app-warning, #d97706); }
-.summary-card.danger .summary-label { color: var(--app-danger, #d94a62); }
+.hero-summary.warning .summary-label { color: var(--app-warning-text, #8a5a13); }
+.hero-summary.danger .summary-label { color: var(--app-danger, #d94a62); }
 
 .summary-total {
   font-size: 30rpx;
@@ -439,57 +470,87 @@ export default {
 .summary-foot {
   display: flex;
   justify-content: space-between;
-  margin-top: 14rpx;
+  margin-top: 12rpx;
   font-size: 26rpx;
   color: var(--app-muted, #7b8798);
 }
 
-.summary-card.danger .summary-foot text:last-child {
+.hero-summary.danger .summary-foot text:last-child {
   color: var(--app-danger, #d94a62);
   font-weight: 800;
 }
 
-/* Section Labels */
-.section-label {
-  font-size: 26rpx;
-  color: var(--app-muted, #7b8798);
-  font-weight: 650;
-  margin-bottom: 10rpx;
-  padding: 0 4rpx;
+.period-note {
+  display: block;
+  margin-top: 10rpx;
+  color: var(--app-faint, #94a3b8);
+  font-size: 22rpx;
+  text-align: center;
 }
 
-.warning-label {
-  color: var(--app-danger, #d94a62);
+/* ========== Progress ========== */
+.progress-track {
+  height: 14rpx;
+  border-radius: 999rpx;
+  background: var(--app-soft-bg, #edf2f5);
+  overflow: hidden;
 }
 
-.section-sort {
-  float: right;
-  font-weight: 400;
-  font-size: 24rpx;
+.progress-fill {
+  height: 100%;
+  border-radius: 999rpx;
+  background: var(--app-primary, #d3a414);
+  transition: width 0.3s;
 }
 
-/* Budget List */
+.progress-fill.warning {
+  background: var(--app-warning, #f59e0b);
+}
+
+.progress-fill.danger {
+  background: var(--app-danger, #d94a62);
+}
+
+/* ========== Unified Budget List ========== */
 .budget-list {
   background: var(--app-card-bg, #ffffff);
   border: 1rpx solid var(--app-border, #edf1f4);
   border-radius: 20rpx;
-  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(15, 23, 42, 0.045));
   padding: 4rpx 28rpx;
   margin-bottom: 22rpx;
-}
-
-.budget-list.warning-list {
-  border-color: var(--app-danger-border, #fecaca);
-  background: var(--app-danger-bg, #fef2f2);
+  overflow: hidden;
 }
 
 .budget-item {
-  padding: 26rpx 0;
+  position: relative;
+  padding: 26rpx 0 26rpx 18rpx;
   border-bottom: 1rpx solid var(--app-border, #edf1f4);
 }
 
 .budget-item:last-child {
   border-bottom: none;
+}
+
+/* Inline state accent strip */
+.budget-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20rpx;
+  bottom: 20rpx;
+  width: 4rpx;
+  border-radius: 999rpx;
+  background: transparent;
+  transition: background 0.25s;
+}
+
+.budget-item.danger::before {
+  background: var(--app-danger, #d94a62);
+}
+
+.budget-item.warning::before {
+  background: var(--app-warning, #f59e0b);
 }
 
 .budget-head {
@@ -512,7 +573,7 @@ export default {
 }
 
 .budget-state.warning {
-  color: var(--app-warning, #d97706);
+  color: var(--app-warning-text, #8a5a13);
 }
 
 .budget-state.danger {
@@ -525,32 +586,16 @@ export default {
   font-weight: 850;
 }
 
-.progress-track {
-  height: 14rpx;
-  border-radius: 999rpx;
-  background: var(--app-soft-bg, #edf2f5);
-  overflow: hidden;
-  margin: 18rpx 0 10rpx;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: 999rpx;
-  background: var(--app-positive-color, #2EBD85);
-  transition: width 0.3s;
-}
-
-.progress-fill.warning {
-  background: var(--app-warning, #f59e0b);
-}
-
-.progress-fill.danger {
-  background: var(--app-danger, #d94a62);
-}
-
 .remaining {
   color: var(--app-muted, #7b8798);
   font-size: 24rpx;
+  margin-top: 8rpx;
+  display: block;
+}
+
+.remaining.warning {
+  color: var(--app-warning-text, #8a5a13);
+  font-weight: 650;
 }
 
 .remaining.danger {
@@ -564,7 +609,7 @@ export default {
   font-size: 20rpx;
   padding: 2rpx 10rpx;
   border-radius: 6rpx;
-  background: var(--app-soft-bg, #f2f6f4);
+  background: var(--app-soft-bg, #eff1f5);
   color: var(--app-muted, #9ca3af);
   margin-left: 8rpx;
   vertical-align: middle;
@@ -574,27 +619,18 @@ export default {
   opacity: 0.65;
 }
 
-/* All list month groups */
-.all-list {
-  background: var(--app-card-bg, #ffffff);
-  border: 1rpx solid var(--app-border, #edf1f4);
-  border-radius: 20rpx;
-  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
-  padding: 4rpx 28rpx;
-  margin-bottom: 22rpx;
-}
-
+/* Month groups in all tab */
 .month-group-header {
   padding: 20rpx 0 6rpx;
 }
 
 .month-group-title {
-  color: var(--app-primary-dark, #8f6b00);
+  color: var(--app-primary, #d3a414);
   font-size: 28rpx;
   font-weight: 800;
 }
 
-/* Create Button */
+/* ========== Create Button ========== */
 .create-btn {
   display: flex;
   align-items: center;
@@ -606,7 +642,7 @@ export default {
   color: #ffffff;
   font-size: 30rpx;
   font-weight: 800;
-  box-shadow: 0 8rpx 24rpx rgba(211, 164, 20, 0.28);
+  box-shadow: var(--app-shadow-lg, 0 8rpx 24rpx rgba(211, 164, 20, 0.28));
 }
 
 .create-btn-icon {

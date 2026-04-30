@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container" :style="themeVars">
     <view class="type-tabs">
       <view v-for="item in typeOptions" :key="item.value" :class="['type-tab', { active: form.type === item.value }]" @click="switchType(item.value)">
         {{ item.label }}
@@ -47,6 +47,7 @@
 
 <script>
 import { useTransactionStore } from '../../store/transaction'
+import { getThemeVars } from '../../utils/theme'
 
 export default {
   data() {
@@ -63,7 +64,8 @@ export default {
         { label: '支出', value: 'EXPENSE' },
         { label: '收入', value: 'INCOME' }
       ],
-      colors: ['#FF6B6B', '#2EBD85', '#5B8FF9', '#FFC107', '#00BCD4', '#8B5CF6', '#64748B']
+      colors: ['#FF6B6B', '#2EBD85', '#5B8FF9', '#FFC107', '#00BCD4', '#8B5CF6', '#64748B'],
+      themeVars: getThemeVars()
     }
   },
   computed: {
@@ -72,6 +74,7 @@ export default {
     }
   },
   onShow() {
+    this.themeVars = getThemeVars()
     this.loadCategories()
   },
   methods: {
@@ -139,6 +142,7 @@ export default {
   min-height: 100vh;
   padding: 24rpx;
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
 .type-tabs {
@@ -163,7 +167,7 @@ export default {
 }
 
 .type-tab.active {
-  background: var(--app-primary, #e8c56d);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
 }
 
@@ -229,7 +233,7 @@ export default {
   height: 86rpx;
   line-height: 86rpx;
   border-radius: 999rpx;
-  background: var(--app-primary, #e8c56d);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
   font-size: 30rpx;
   font-weight: 800;
@@ -280,7 +284,7 @@ export default {
 }
 
 .category-actions {
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   font-size: 26rpx;
   font-weight: 800;
 }

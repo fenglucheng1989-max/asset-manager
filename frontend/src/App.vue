@@ -73,7 +73,6 @@ body {
 /* ---- Hero / Dark cards ---- */
 .net-card,
 .net-worth-card,
-.hero-card,
 .theme-hero,
 .settings-hero,
 .security-hero,
@@ -104,7 +103,6 @@ body {
 }
 
 .net-card .net-arrow,
-.net-worth-card .card-badge,
 .trend-hero .meta-value {
   color: var(--app-outfit-header-sub, var(--app-hero-sub, rgba(255,255,255,0.72))) !important;
 }
@@ -173,7 +171,7 @@ body {
 .legal-link,
 .switch-text,
 .link {
-  color: var(--app-primary-dark, #226f63) !important;
+  color: var(--app-primary, #d3a414) !important;
 }
 
 /* ---- Soft backgrounds & inputs ---- */
@@ -214,15 +212,15 @@ input,
 .primary-btn,
 .submit-btn,
 .login-btn {
-  background: var(--app-primary, #2ebd85) !important;
+  background: var(--app-primary, #d3a414) !important;
   color: #ffffff !important;
 }
 
 .add-account-btn,
 .load-btn,
 .insight-score {
-  background: var(--app-soft-bg, #eef8f4) !important;
-  color: var(--app-primary-dark, #226f63) !important;
+  background: var(--app-soft-bg, #f6f8fb) !important;
+  color: var(--app-primary, #d3a414) !important;
   border-color: var(--app-border, #edf1f4) !important;
 }
 
@@ -328,7 +326,7 @@ uni-tabbar .uni-tabbar__label {
 
 uni-tabbar .uni-tabbar__label[style*="rgb(232, 197, 109)"],
 uni-tabbar .uni-tabbar__label[style*="#e8c56d"] {
-  color: var(--app-tabbar-selected, var(--app-primary, #2ebd85)) !important;
+  color: var(--app-tabbar-selected, var(--app-primary, #d3a414)) !important;
   font-weight: 750 !important;
 }
 
@@ -338,19 +336,19 @@ uni-tabbar .uni-tabbar__icon {
 }
 
 uni-tabbar .uni-tabbar__item.uni-tabbar__item--active .uni-tabbar__label {
-  color: var(--app-tabbar-selected, var(--app-primary, #2ebd85)) !important;
+  color: var(--app-tabbar-selected, var(--app-primary, #d3a414)) !important;
   font-weight: 750 !important;
 }
 
 uni-tabbar .uni-tabbar__item.uni-tabbar__item--active::before {
-  background: var(--app-tabbar-selected-bg, rgba(46, 189, 133, 0.12));
+  background: var(--app-tabbar-selected-bg, rgba(211, 164, 20, 0.12));
   box-shadow: var(--app-tabbar-selected-shadow, none);
   opacity: 1;
   transform: translateX(-50%) scale(1);
 }
 
 uni-tabbar .uni-tabbar__item.uni-tabbar__item--active::after {
-  background: var(--app-tabbar-selected, var(--app-primary, #2ebd85));
+  background: var(--app-tabbar-selected, var(--app-primary, #d3a414));
   opacity: 1;
   transform: translateX(-50%) scaleX(1);
 }

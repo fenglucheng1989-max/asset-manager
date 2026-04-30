@@ -1,9 +1,9 @@
 <template>
-  <view class="container">
-    <view class="hero-card">
-      <view>
+  <view class="container" :style="themeVars">
+    <view class="page-hero">
+      <view class="hero-copy">
         <text class="hero-title">{{ heroTitle }}</text>
-        <text class="hero-copy">{{ health.summary || '基于已记录数据生成，不构成投资建议。' }}</text>
+        <text class="hero-sub">{{ health.summary || '基于已记录数据生成，不构成投资建议。' }}</text>
       </view>
       <view class="score-ring">
         <text class="score-value">{{ scoreText }}</text>
@@ -44,12 +44,14 @@
 
 <script>
 import { useInsightStore } from '../../store/insight'
+import { getThemeVars } from '../../utils/theme'
 
 export default {
   data() {
     return {
       loading: false,
-      health: {}
+      health: {},
+      themeVars: getThemeVars()
     }
   },
   computed: {
@@ -67,6 +69,7 @@ export default {
     }
   },
   onShow() {
+    this.themeVars = getThemeVars()
     this.fetchHealth()
   },
   methods: {
@@ -102,47 +105,50 @@ export default {
   min-height: 100vh;
   padding: 24rpx 22rpx calc(48rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
-.hero-card {
+/* ========== Hero + Score ========== */
+.page-hero {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 26rpx;
   padding: 34rpx;
   margin-bottom: 18rpx;
   border-radius: 20rpx;
-  color: var(--app-hero-text, #ffffff);
-  background: var(--app-hero-gradient, linear-gradient(135deg, #14202d 0%, #174a43 100%));
-  box-shadow: var(--app-shadow-lg, 0 14rpx 34rpx rgba(17, 32, 45, 0.14));
+  border: 1rpx solid var(--app-border, #edf1f4);
+  background: var(--app-card-bg, #ffffff);
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(15, 23, 42, 0.045));
 }
 
-.hero-label,
-.hero-copy,
-.score-label {
-  color: var(--app-hero-sub, rgba(255, 255, 255, 0.72));
-  font-size: 24rpx;
-  line-height: 34rpx;
+.hero-copy {
+  flex: 1;
+  min-width: 0;
 }
 
 .hero-title {
   display: block;
-  margin: 8rpx 0 12rpx;
-  color: var(--app-hero-accent, #ffd166);
-  font-size: 46rpx;
-  line-height: 56rpx;
+  font-size: 42rpx;
+  line-height: 52rpx;
   font-weight: 900;
+  color: var(--app-primary, #d3a414);
 }
 
-.hero-copy {
+.hero-sub {
   display: block;
+  margin-top: 10rpx;
+  color: var(--app-muted, #7b8798);
+  font-size: 24rpx;
+  line-height: 34rpx;
 }
 
 .score-ring {
   width: 126rpx;
   height: 126rpx;
   border-radius: 50%;
-  background: var(--app-section-bg, rgba(255, 255, 255, 0.12));
-  border: 1rpx solid var(--app-hero-badge-bg, rgba(255, 255, 255, 0.16));
+  background: var(--app-soft-bg, #eff1f5);
+  border: 2rpx solid var(--app-border, #edf1f4);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -151,26 +157,28 @@ export default {
 }
 
 .score-value {
-  color: var(--app-hero-text, #ffffff);
+  color: var(--app-primary, #d3a414);
   font-size: 42rpx;
   line-height: 48rpx;
   font-weight: 900;
 }
 
+.score-label {
+  color: var(--app-muted, #7b8798);
+  font-size: 22rpx;
+  line-height: 30rpx;
+}
+
+/* ========== Notice ========== */
 .notice-card,
-.metric-card,
 .empty-card {
   margin-bottom: 18rpx;
-  padding: 26rpx 28rpx;
+  padding: 24rpx 28rpx;
   border-radius: 18rpx;
   background: var(--app-card-bg, #ffffff);
   border: 1rpx solid var(--app-border, #edf1f4);
-  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
-}
-
-.notice-card,
-.empty-card {
-  color: var(--app-muted, #64748b);
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(15, 23, 42, 0.045));
+  color: var(--app-muted, #7b8798);
   font-size: 24rpx;
   line-height: 36rpx;
 }
@@ -179,6 +187,16 @@ export default {
   color: var(--app-warning-text, #8a5a13);
   background: var(--app-warning-bg, #fff8e6);
   border-color: var(--app-warning-border, #f4dfaa);
+}
+
+/* ========== Metrics ========== */
+.metric-card {
+  margin-bottom: 18rpx;
+  padding: 26rpx 28rpx;
+  border-radius: 18rpx;
+  background: var(--app-card-bg, #ffffff);
+  border: 1rpx solid var(--app-border, #edf1f4);
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(15, 23, 42, 0.045));
 }
 
 .metric-head {
@@ -199,7 +217,7 @@ export default {
 .metric-subtitle {
   display: block;
   margin-top: 8rpx;
-  color: var(--app-muted, #64748b);
+  color: var(--app-muted, #7b8798);
   font-size: 24rpx;
   line-height: 34rpx;
 }
@@ -246,8 +264,12 @@ export default {
   margin-top: 18rpx;
   padding-top: 18rpx;
   border-top: 1rpx solid var(--app-border, #edf1f4);
-  color: var(--app-muted, #526173);
+  color: var(--app-muted, #7b8798);
   font-size: 25rpx;
   line-height: 36rpx;
+}
+
+.empty-card {
+  text-align: center;
 }
 </style>

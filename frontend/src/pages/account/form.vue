@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container" :style="themeVars">
     <view class="page-head">
       <text class="page-title">{{ isEdit ? '编辑账户' : '新增账户' }}</text>
     </view>
@@ -102,7 +102,7 @@
 <script>
 import { useAssetStore } from '../../store/asset'
 import { useUserStore } from '../../store/user'
-import { getResolvedTheme, getThemeMode } from '../../utils/theme'
+import { getResolvedTheme, getThemeMode, getThemeVars } from '../../utils/theme'
 
 const MONEY_PATTERN = /^(0|[1-9]\d{0,14})(\.\d{1,4})?$/
 
@@ -161,6 +161,7 @@ export default {
         { label: '英镑 GBP', value: 'GBP', rate: '9.10' }
       ],
       currencyIndex: 0,
+      themeVars: getThemeVars()
     }
   },
   computed: {
@@ -186,6 +187,9 @@ export default {
       this.applyDefaultCurrency()
     }
     this.captureInitialSnapshot()
+  },
+  onShow() {
+    this.themeVars = getThemeVars()
   },
   onBackPress() {
     if (!this.hasUnsavedChanges()) return false
@@ -367,6 +371,7 @@ export default {
   padding: 28rpx 24rpx calc(144rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
 .page-head {
@@ -404,9 +409,9 @@ export default {
 }
 
 .kind-tab.active {
-  background: var(--app-primary, #e8c56d);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
-  box-shadow: 0 8rpx 18rpx rgba(0, 0, 0, 0.16);
+  box-shadow: var(--app-shadow-lg, 0 8rpx 22rpx rgba(15, 23, 42, 0.08));
 }
 
 .form-card {
@@ -422,7 +427,7 @@ export default {
 
 .group-title {
   display: block;
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   font-size: 23rpx;
   line-height: 34rpx;
   margin-bottom: 6rpx;
@@ -444,7 +449,7 @@ export default {
 .field-hint {
   display: block;
   margin: -2rpx 0 10rpx;
-  padding-left: 180rpx;
+  padding-left: 160rpx;
   color: var(--app-muted, #7b8798);
   font-size: 22rpx;
   line-height: 32rpx;
@@ -459,7 +464,7 @@ export default {
 .form-label {
   font-size: 30rpx;
   color: var(--app-text, #17202a);
-  width: 180rpx;
+  width: 160rpx;
   flex-shrink: 0;
   font-weight: 650;
 }
@@ -511,7 +516,7 @@ export default {
   height: auto;
   border-radius: 0;
   background: transparent;
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -526,7 +531,7 @@ export default {
 }
 
 .btn-save {
-  background: var(--app-primary, #e8c56d);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
   border-radius: 999rpx;
   height: 88rpx;

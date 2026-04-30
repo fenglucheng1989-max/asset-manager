@@ -403,13 +403,13 @@ export default {
       const expensePalette = [
         'var(--app-liability-color, #d94a62)',
         'var(--app-accent, #f4c95d)',
-        'var(--app-primary, #2ebd85)',
+        'var(--app-primary, #d3a414)',
         'var(--app-muted, #64748b)',
         'var(--app-faint, #94a3b8)'
       ]
       const incomePalette = [
         'var(--app-positive-color, #1f8f72)',
-        'var(--app-primary, #2ebd85)',
+        'var(--app-primary, #d3a414)',
         'var(--app-accent, #f4c95d)',
         'var(--app-muted, #64748b)',
         'var(--app-faint, #94a3b8)'
@@ -532,6 +532,7 @@ export default {
   min-height: 100vh;
   padding: 20rpx 22rpx calc(144rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
 /* ---- Hero Card ---- */
@@ -699,7 +700,7 @@ export default {
 }
 
 .type-chip.active {
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   background: var(--app-tabbar-selected-bg, rgba(211, 164, 20, 0.12));
   border-color: var(--app-primary, #d3a414);
 }
@@ -781,7 +782,7 @@ export default {
   padding: 0;
   border-radius: 50%;
   background: var(--app-tabbar-selected-bg, rgba(211, 164, 20, 0.12));
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   border: 1rpx solid var(--app-border, #edf1f4);
   font-size: 34rpx;
   font-weight: 500;

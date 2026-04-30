@@ -43,7 +43,30 @@
       "Bash(python3 -m json.tool)",
       "Bash(mvn -f D:/sourceCode/asset-manager/backend/pom.xml test)",
       "Bash(mvn -f D:/sourceCode/asset-manager/backend/pom.xml clean package -DskipTests -q)",
-      "Bash(mvn -f D:/sourceCode/asset-manager/backend/pom.xml clean package -DskipTests)"
+      "Bash(mvn -f D:/sourceCode/asset-manager/backend/pom.xml clean package -DskipTests)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(echo \"BUILD:$?\")",
+      "Bash(cd D:\\\\\\\\sourceCode\\\\\\\\asset-manager)",
+      "PowerShell(git checkout *)",
+      "Bash(sed -i 's/var\\(--app-primary-dark, #226f63\\)/var\\(--app-primary, #d3a414\\)/g' index.vue)",
+      "Bash(sed -i 's/var\\(--app-primary-dark, #8f6b00\\)/var\\(--app-primary, #d3a414\\)/g' index.vue)",
+      "Bash(sed -i 's/var\\(--app-primary, #2ebd85\\)/var\\(--app-primary, #d3a414\\)/g' index.vue)",
+      "Bash(sed -i 's/var\\(--app-border, #b9d7ce\\)/var\\(--app-border, #edf1f4\\)/g' index.vue)",
+      "Bash(netstat -ano)",
+      "Bash(sed -i 's/<view class=\"gradient-shape s1\" :style=\"{ background: themeAccents\\\\[item.value\\\\] }\"><\\\\/view>/<view class=\"gradient-bar\" :style=\"{ background: themeAccents[item.value] }\"><\\\\/view>/' theme.vue)",
+      "Bash(sed -i '/<view class=\"gradient-shape s2\"/d' theme.vue)",
+      "Bash(sed -i '/<view class=\"gradient-shape s3 circle\"/d' theme.vue)",
+      "Bash(sed -i 's/{{ item.label }}/{{ item.label }}<text v-if=\"item.value === '\\\\''warm-gold'\\\\''\" class=\"default-tag\">默认<\\\\/text>/' theme.vue)",
+      "Bash(java -jar target/asset-manager-1.0.0-SNAPSHOT.jar)",
+      "Bash(java *)",
+      "Bash(taskkill *)",
+      "Bash(jar tf *)",
+      "Bash(unzip -l backend/target/asset-manager-1.0.0-SNAPSHOT.jar)",
+      "Bash(jps -l)",
+      "Bash(tasklist)",
+      "Bash(break)",
+      "PowerShell(Test-Path *)",
+      "Bash(git add *)"
     ]
   }
 }

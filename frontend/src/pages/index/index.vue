@@ -58,7 +58,6 @@
             <text>删除</text>
           </view>
           <view class="account-surface" :style="getAccountSurfaceStyle(account, index)">
-          <view class="account-accent" :style="getAccountAccentStyle(account)"></view>
           <view class="account-main">
             <view class="account-left">
               <view class="account-icon" :class="getAccountIconClass(account)" :style="getAccountIconStyle(account)">
@@ -207,32 +206,8 @@ export default {
     },
     getAccountIconStyle(account) {
       return {
-        color: account.isLiability ? 'var(--app-liability-color, #d94a62)' : 'var(--app-primary-dark, #8f6b00)'
+        color: account.isLiability ? 'var(--app-liability-color, #d94a62)' : 'var(--app-primary, #d3a414)'
       }
-    },
-    getAccountAccentStyle(account) {
-      const color = this.normalizeColor(account.colorHex) || (account.isLiability ? '#d94a62' : '#d3a414')
-      return {
-        background: this.hexToRgba(color, 0.44)
-      }
-    },
-    normalizeColor(value) {
-      if (!value || typeof value !== 'string') return ''
-      const color = value.trim()
-      if (/^#[0-9a-fA-F]{6}$/.test(color)) return color
-      if (/^#[0-9a-fA-F]{3}$/.test(color)) {
-        return `#${color.slice(1).split('').map(char => char + char).join('')}`
-      }
-      return ''
-    },
-    hexToRgba(hex, alpha) {
-      const color = this.normalizeColor(hex)
-      if (!color) return `rgba(46, 189, 133, ${alpha})`
-      const value = color.slice(1)
-      const r = parseInt(value.slice(0, 2), 16)
-      const g = parseInt(value.slice(2, 4), 16)
-      const b = parseInt(value.slice(4, 6), 16)
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`
     },
     handleAccountClick(id) {
       if (this.dragIndex >= 0 || this.isPressDragging) return
@@ -408,108 +383,85 @@ export default {
 .container {
   padding: 28rpx 24rpx calc(144rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
+tbackground: var(--app-page-bg, #f8f9fb);
   box-sizing: border-box;
 }
 
 .net-worth-card {
   position: relative;
-  overflow: hidden;
-  background: var(--app-outfit-header-bg, var(--app-hero-gradient, linear-gradient(135deg, #14202d 0%, #20384a 58%, #22564d 100%)));
-  border-radius: 22rpx;
-  padding: 40rpx 34rpx 34rpx;
-  margin-bottom: 26rpx;
-  color: var(--app-outfit-header-text, var(--app-hero-text, #ffffff));
-  box-shadow: 0 18rpx 42rpx rgba(15, 23, 42, 0.10);
-}
-
-.net-worth-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--app-outfit-header-pattern, none);
-  opacity: 0.9;
-  pointer-events: none;
+  background: var(--app-card-bg, #ffffff);
+  border-radius: 18rpx;
+  padding: 32rpx 30rpx 28rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid var(--app-border, #edf1f4);
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
 }
 
 .net-worth-card:active {
   opacity: 0.94;
 }
 
+.net-worth-card::before {
+  display: none;
+}
+
 .card-title-row {
-  position: relative;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20rpx;
-  margin-bottom: 18rpx;
-}
-
-.card-actions {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  flex-shrink: 0;
+  margin-bottom: 8rpx;
 }
 
 .card-title {
-  font-size: 28rpx;
-  color: var(--app-outfit-header-sub, var(--app-hero-sub, rgba(255, 255, 255, 0.78)));
+  font-size: 26rpx;
+  color: var(--app-muted, #7b8798);
 }
 
 .card-badge {
   flex-shrink: 0;
-  padding: 8rpx 16rpx;
+  padding: 6rpx 14rpx;
   border-radius: 999rpx;
-  background: var(--app-hero-badge-bg, rgba(255, 255, 255, 0.12));
-  color: var(--app-outfit-header-sub, var(--app-hero-sub, rgba(255, 255, 255, 0.82)));
+  background: var(--app-soft-bg, #f2f5f7);
+  color: var(--app-primary, #d3a414);
   font-size: 22rpx;
+  font-weight: 650;
 }
 
 .net-worth-amount {
-  position: relative;
-  z-index: 1;
-  font-size: 64rpx;
-  line-height: 78rpx;
+  font-size: 44rpx;
+  line-height: 56rpx;
   font-weight: 800;
-  color: var(--app-outfit-header-accent, var(--app-hero-accent, #f4c95d));
-  margin-bottom: 34rpx;
+  color: var(--app-primary, #d3a414);
+  margin-bottom: 18rpx;
   word-break: break-all;
 }
 
 .card-detail {
-  position: relative;
-  z-index: 1;
   display: flex;
-  justify-content: space-between;
-  gap: 24rpx;
+  align-items: center;
+  gap: 16rpx;
 }
 
 .detail-item {
   display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  padding: 22rpx;
-  border-radius: 14rpx;
-  background: var(--app-section-bg, rgba(255, 255, 255, 0.1));
+  align-items: center;
+  gap: 8rpx;
 }
 
 .detail-label {
-  font-size: 24rpx;
-  color: var(--app-outfit-header-sub, var(--app-hero-sub, rgba(255, 255, 255, 0.68)));
-  margin-bottom: 8rpx;
+  font-size: 23rpx;
+  color: var(--app-muted, #7b8798);
 }
 
 .detail-value {
-  font-size: 32rpx;
-  font-weight: 500;
-  word-break: break-all;
-  color: var(--app-outfit-header-text, var(--app-hero-text, #ffffff));
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--app-text, #17202a);
 }
 
 .detail-value.liability {
-  color: var(--app-liability-color, #ff9aa9);
+  color: var(--app-liability-color, #d94a62);
 }
 
 .account-section,
@@ -517,11 +469,11 @@ export default {
 .error-tip,
 .loading-tip {
   background: var(--app-card-bg, #ffffff);
-  border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 26rpx;
+  border-radius: 18rpx;
+  padding: 26rpx;
+  margin-bottom: 20rpx;
   border: 1rpx solid var(--app-border, #edf1f4);
-  box-shadow: var(--app-shadow, 0 12rpx 30rpx rgba(26, 42, 58, 0.06));
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
 }
 
 .loading-tip {
@@ -555,7 +507,7 @@ export default {
 }
 
 .login-tip-btn {
-  background: var(--app-primary, #2ebd85);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
   border-radius: 12rpx;
   height: 76rpx;
@@ -580,8 +532,8 @@ export default {
 
 .error-btn {
   background: var(--app-card-bg, #ffffff);
-  color: var(--app-primary-dark, #226f63);
-  border: 1rpx solid var(--app-border, #b9d7ce);
+  color: var(--app-primary, #d3a414);
+  border: 1rpx solid var(--app-border, #edf1f4);
   border-radius: 12rpx;
   height: 72rpx;
   line-height: 72rpx;
@@ -589,27 +541,16 @@ export default {
 }
 
 .section-title {
-  font-size: 32rpx;
-  font-weight: 700;
+  font-size: 30rpx;
+  font-weight: 750;
   color: var(--app-text, #17202a);
-}
-
-.section-subtitle {
-  display: block;
-  margin-top: 6rpx;
-  color: var(--app-muted, #7b8798);
-  font-size: 24rpx;
-  line-height: 34rpx;
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.section-header {
-  margin-bottom: 20rpx;
+  margin-bottom: 18rpx;
 }
 
 .add-icon {
@@ -620,12 +561,12 @@ export default {
 .account-list {
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
+  gap: 10rpx;
 }
 
 .account-item {
   position: relative;
-  border-radius: 18rpx;
+  border-radius: 16rpx;
   user-select: none;
   overflow: hidden;
   background: var(--app-card-bg-alt, #fbfcfd);
@@ -657,45 +598,36 @@ export default {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  padding: 24rpx;
-  border-radius: 18rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 16rpx;
   background: var(--app-card-bg-alt, #fbfcfd);
   border: 1rpx solid var(--app-border, #edf1f4);
   transition: transform 0.18s ease;
 }
 
-.account-accent {
-  position: absolute;
-  left: 0;
-  top: 30rpx;
-  bottom: 30rpx;
-  width: 4rpx;
-  border-radius: 0 999rpx 999rpx 0;
-}
-
 .account-main {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 20rpx;
+  align-items: center;
+  gap: 16rpx;
   width: 100%;
 }
 
 .account-left {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   min-width: 0;
   flex: 1;
 }
 
 .account-icon {
-  width: 76rpx;
-  height: 76rpx;
-  border-radius: 22rpx;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 16rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 24rpx;
+  margin-right: 18rpx;
   flex-shrink: 0;
   background: var(--app-soft-bg, #f2f6f4);
   border: 1rpx solid var(--app-border, #edf1f4);
@@ -704,8 +636,8 @@ export default {
 
 .account-line-mark {
   position: relative;
-  width: 40rpx;
-  height: 40rpx;
+  width: 30rpx;
+  height: 30rpx;
   box-sizing: border-box;
 }
 
@@ -884,14 +816,13 @@ export default {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding-top: 2rpx;
+  gap: 4rpx;
 }
 
 .account-name {
-  font-size: 30rpx;
+  font-size: 28rpx;
   color: var(--app-text, #17202a);
   font-weight: 650;
-  margin-bottom: 8rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -900,10 +831,10 @@ export default {
 .account-meta {
   display: flex;
   align-items: center;
-  gap: 8rpx;
+  gap: 6rpx;
   color: var(--app-muted, #7b8798);
-  font-size: 23rpx;
-  line-height: 32rpx;
+  font-size: 22rpx;
+  line-height: 30rpx;
   min-width: 0;
 }
 
@@ -913,24 +844,21 @@ export default {
 
 .account-right {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8rpx;
-  text-align: right;
+  align-items: center;
   flex-shrink: 0;
 }
 
 .drag-hint {
-  margin-top: 16rpx;
-  color: var(--app-primary-dark, #226f63);
+  margin-top: 12rpx;
+  color: var(--app-primary, #d3a414);
   font-size: 22rpx;
   line-height: 30rpx;
   text-align: right;
 }
 
 .account-balance {
-  font-size: 30rpx;
-  font-weight: 600;
+  font-size: 28rpx;
+  font-weight: 700;
   color: var(--app-text, #17202a);
 }
 
@@ -942,15 +870,15 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 24rpx 0 0;
-  height: 86rpx;
-  line-height: 86rpx;
-  border-radius: 18rpx;
-  background: var(--app-soft-bg, #eef8f4);
-  color: var(--app-primary-dark, #226f63);
-  border: 1rpx dashed var(--app-border, #a9d6ca);
-  font-size: 28rpx;
-  font-weight: 750;
+  margin: 16rpx 0 0;
+  height: 80rpx;
+  line-height: 80rpx;
+  border-radius: 16rpx;
+  background: var(--app-soft-bg, #f2f5f7);
+  color: var(--app-primary, #d3a414);
+  border: 1rpx solid var(--app-border, #edf1f4);
+  font-size: 27rpx;
+  font-weight: 650;
 }
 
 .empty-state {

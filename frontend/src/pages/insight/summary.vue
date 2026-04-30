@@ -1,8 +1,8 @@
 <template>
-  <view class="container">
-    <view class="hero-card" v-if="current">
-      <text class="hero-title">{{ periodText(current) }}</text>
-      <text class="hero-copy">{{ current.description }}</text>
+  <view class="container" :style="themeVars">
+    <view class="page-hero" v-if="current">
+      <text class="hero-period">{{ periodText(current) }}</text>
+      <text class="hero-desc">{{ current.description }}</text>
       <view class="hero-grid">
         <view>
           <text class="grid-label">期末净资产</text>
@@ -15,10 +15,7 @@
           </text>
         </view>
       </view>
-    </view>
-
-    <view class="notice-card">
-      <text>月报基于已记录流水生成。未记录的现金流不会纳入统计，因此结果应作为复盘参考。</text>
+      <text class="hero-footnote">月报基于已记录流水生成，作为复盘参考</text>
     </view>
 
     <view class="section-card" v-if="current">
@@ -27,11 +24,11 @@
         <text class="section-subtitle">本月收入、支出与预算执行</text>
       </view>
       <view class="stat-row">
-        <view>
+        <view class="stat-item">
           <text class="stat-label">收入</text>
           <text class="stat-value income">{{ formatMoney(current.income) }}</text>
         </view>
-        <view>
+        <view class="stat-item">
           <text class="stat-label">支出</text>
           <text class="stat-value expense">{{ formatMoney(current.expense) }}</text>
         </view>
@@ -67,10 +64,18 @@
         <text class="section-title">历史月报</text>
         <text class="link" @click="goMilestones">里程碑 ›</text>
       </view>
-      <view v-for="item in summaries" :key="item.id" class="summary-row" @click="selectSummary(item)">
-        <view>
-          <text class="row-title">{{ periodText(item) }}</text>
-          <text class="row-subtitle">{{ item.description }}</text>
+      <view
+        v-for="item in summaries"
+        :key="item.id"
+        :class="['summary-row', { selected: current && current.id === item.id }]"
+        @click="selectSummary(item)"
+      >
+        <view class="summary-left">
+          <view :class="['summary-dot', changeClass(item)]"></view>
+          <view>
+            <text class="row-title">{{ periodText(item) }}</text>
+            <text class="row-subtitle">{{ item.description }}</text>
+          </view>
         </view>
         <text :class="['row-amount', changeClass(item)]">
           {{ signedMoney(item) }}
@@ -85,16 +90,19 @@
 <script>
 import { useInsightStore } from '../../store/insight'
 import { formatMoney } from '../../utils/money'
+import { getThemeVars } from '../../utils/theme'
 
 export default {
   data() {
     return {
       loading: false,
       current: null,
-      summaries: []
+      summaries: [],
+      themeVars: getThemeVars()
     }
   },
   onShow() {
+    this.themeVars = getThemeVars()
     this.fetchSummaries()
   },
   methods: {
@@ -155,51 +163,33 @@ export default {
   min-height: 100vh;
   padding: 24rpx 22rpx calc(48rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
-.hero-card,
-.notice-card,
-.section-card {
+/* ========== Hero ========== */
+.page-hero {
+  padding: 34rpx;
   margin-bottom: 18rpx;
-  border-radius: 18rpx;
+  border-radius: 20rpx;
   border: 1rpx solid var(--app-border, #edf1f4);
   background: var(--app-card-bg, #ffffff);
-  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(15, 23, 42, 0.045));
 }
 
-.hero-card {
-  padding: 34rpx;
-  color: var(--app-hero-text, #ffffff);
-  background: var(--app-hero-gradient, linear-gradient(135deg, #14202d 0%, #174a43 100%));
-}
-
-.hero-label,
-.hero-copy,
-.grid-label,
-.section-subtitle,
-.row-subtitle {
-  color: var(--app-muted, #7b8798);
-  font-size: 24rpx;
-  line-height: 34rpx;
-}
-
-.hero-label,
-.hero-copy,
-.grid-label {
-  color: var(--app-hero-sub, rgba(255, 255, 255, 0.72));
-}
-
-.hero-title {
+.hero-period {
   display: block;
-  margin: 8rpx 0 10rpx;
-  color: var(--app-hero-accent, #ffd166);
   font-size: 42rpx;
   line-height: 52rpx;
   font-weight: 900;
+  color: var(--app-primary, #d3a414);
 }
 
-.hero-copy {
+.hero-desc {
   display: block;
+  margin-top: 8rpx;
+  color: var(--app-muted, #7b8798);
+  font-size: 24rpx;
+  line-height: 34rpx;
 }
 
 .hero-grid {
@@ -212,23 +202,20 @@ export default {
 .hero-grid > view {
   padding: 20rpx;
   border-radius: 16rpx;
-  background: var(--app-section-bg, rgba(255, 255, 255, 0.08));
+  background: var(--app-soft-bg, #eff1f5);
 }
 
-.grid-label,
-.grid-value,
-.section-title,
-.section-subtitle,
-.stat-label,
-.stat-value,
-.row-title,
-.row-subtitle {
+.grid-label {
   display: block;
+  color: var(--app-muted, #7b8798);
+  font-size: 24rpx;
+  line-height: 34rpx;
 }
 
 .grid-value {
+  display: block;
   margin-top: 6rpx;
-  color: var(--app-hero-text, #ffffff);
+  color: var(--app-text, #17202a);
   font-size: 30rpx;
   line-height: 38rpx;
   font-weight: 850;
@@ -236,7 +223,7 @@ export default {
 }
 
 .up {
-  color: var(--app-primary, #2ebd85);
+  color: var(--app-primary, #d3a414);
 }
 
 .down {
@@ -247,15 +234,22 @@ export default {
   color: var(--app-muted, #7b8798);
 }
 
-.notice-card {
-  padding: 22rpx 26rpx;
-  color: var(--app-muted, #64748b);
-  font-size: 24rpx;
-  line-height: 36rpx;
+.hero-footnote {
+  display: block;
+  margin-top: 24rpx;
+  color: var(--app-faint, #9ba3b0);
+  font-size: 22rpx;
+  line-height: 32rpx;
 }
 
+/* ========== Section Cards ========== */
 .section-card {
+  margin-bottom: 18rpx;
   overflow: hidden;
+  border-radius: 20rpx;
+  border: 1rpx solid var(--app-border, #edf1f4);
+  background: var(--app-card-bg, #ffffff);
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(15, 23, 42, 0.045));
 }
 
 .section-head {
@@ -270,6 +264,7 @@ export default {
 }
 
 .section-title {
+  display: block;
   color: var(--app-text, #17202a);
   font-size: 31rpx;
   line-height: 40rpx;
@@ -277,15 +272,20 @@ export default {
 }
 
 .section-subtitle {
+  display: block;
   margin-top: 6rpx;
+  color: var(--app-muted, #7b8798);
+  font-size: 24rpx;
+  line-height: 34rpx;
 }
 
 .link {
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   font-size: 25rpx;
   font-weight: 800;
 }
 
+/* ========== Stats Row ========== */
 .stat-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -293,12 +293,20 @@ export default {
   padding: 24rpx 28rpx;
 }
 
+.stat-item {
+  padding: 20rpx;
+  border-radius: 16rpx;
+  background: var(--app-soft-bg, #eff1f5);
+}
+
 .stat-label {
+  display: block;
   color: var(--app-muted, #64748b);
   font-size: 24rpx;
 }
 
 .stat-value {
+  display: block;
   margin-top: 8rpx;
   font-size: 34rpx;
   line-height: 42rpx;
@@ -306,27 +314,23 @@ export default {
 }
 
 .income {
-  color: var(--app-positive-color, #0f8f68);
+  color: var(--app-primary, #d3a414);
 }
 
 .expense {
   color: var(--app-danger, #d94a62);
 }
 
+/* ========== Budget ========== */
 .budget-block {
   padding: 0 28rpx 26rpx;
 }
 
-.budget-head,
-.record-line,
-.summary-row {
+.budget-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18rpx;
-}
-
-.budget-head {
   color: var(--app-muted, #64748b);
   font-size: 24rpx;
   margin-bottom: 12rpx;
@@ -341,12 +345,16 @@ export default {
 
 .budget-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--app-positive-color, #2ebd85), var(--app-hero-accent, #f4c95d));
+  background: var(--app-primary, #d3a414);
   border-radius: 999rpx;
 }
 
-.record-line,
-.summary-row {
+/* ========== Record Lines ========== */
+.record-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
   min-height: 92rpx;
   padding: 0 28rpx;
   border-bottom: 1rpx solid var(--app-border, #edf1f4);
@@ -355,15 +363,70 @@ export default {
   font-weight: 700;
 }
 
-.record-line:last-child,
+.record-line:last-child {
+  border-bottom: none;
+}
+
+/* ========== History List ========== */
+.summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  min-height: 92rpx;
+  padding: 0 28rpx;
+  border-bottom: 1rpx solid var(--app-border, #edf1f4);
+  transition: background 0.18s;
+}
+
 .summary-row:last-child {
   border-bottom: none;
 }
 
+.summary-row.selected {
+  background: var(--app-soft-bg, #eff1f5);
+}
+
+.summary-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-width: 0;
+  flex: 1;
+}
+
+.summary-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--app-muted, #9ca3af);
+}
+
+.summary-dot.up {
+  background: var(--app-primary, #d3a414);
+}
+
+.summary-dot.down {
+  background: var(--app-danger, #d94a62);
+}
+
+.summary-dot.neutral {
+  background: var(--app-muted, #9ca3af);
+}
+
 .row-title {
+  display: block;
   color: var(--app-text, #17202a);
   font-size: 27rpx;
   font-weight: 800;
+}
+
+.row-subtitle {
+  display: block;
+  color: var(--app-muted, #7b8798);
+  font-size: 24rpx;
+  line-height: 34rpx;
 }
 
 .row-amount {

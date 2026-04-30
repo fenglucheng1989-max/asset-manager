@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container" :style="themeVars">
     <view class="account-card" v-if="account">
       <view class="account-head">
         <view>
@@ -94,6 +94,7 @@
 <script>
 import { useAssetStore } from '../../store/asset'
 import { formatMoney, getAccountTypeName, getCurrencySymbol, toBaseAmount } from '../../utils/money'
+import { getThemeVars } from '../../utils/theme'
 
 export default {
   data() {
@@ -104,7 +105,8 @@ export default {
       isLoading: false,
       showAdjustSheet: false,
       adjustBalance: '',
-      isAdjusting: false
+      isAdjusting: false,
+      themeVars: getThemeVars()
     }
   },
   computed: {
@@ -116,6 +118,7 @@ export default {
     this.accountId = Number(options.id)
   },
   onShow() {
+    this.themeVars = getThemeVars()
     this.refreshData()
   },
   methods: {
@@ -143,9 +146,9 @@ export default {
     },
     getAccountMarkStyle(account) {
       return {
-        color: 'var(--app-primary, #2EBD85)',
-        backgroundColor: 'var(--app-soft-bg, rgba(46, 189, 133, 0.14))',
-        borderColor: 'var(--app-border, rgba(46, 189, 133, 0.22))'
+        color: 'var(--app-primary, #d3a414)',
+        backgroundColor: 'var(--app-soft-bg, rgba(211, 164, 20, 0.12))',
+        borderColor: 'var(--app-border, rgba(211, 164, 20, 0.20))'
       }
     },
     getChangeTitle(type) {
@@ -251,6 +254,7 @@ export default {
   min-height: 100vh;
   padding: 28rpx 24rpx calc(150rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  background: var(--app-page-bg, #f8f9fb);
 }
 
 .account-card,
@@ -258,7 +262,7 @@ export default {
   background: var(--app-card-bg, #ffffff);
   border-radius: 18rpx;
   border: 1rpx solid var(--app-border, #edf1f4);
-  box-shadow: var(--app-shadow, 0 12rpx 30rpx rgba(26, 42, 58, 0.06));
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(15, 23, 42, 0.045));
 }
 
 .account-card {
@@ -302,7 +306,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   font-size: 34rpx;
   font-weight: 800;
   border: 1rpx solid transparent;
@@ -312,8 +316,8 @@ export default {
   display: block;
   margin-top: 40rpx;
   color: var(--app-text, #17202a);
-  font-size: 62rpx;
-  line-height: 76rpx;
+  font-size: 48rpx;
+  line-height: 60rpx;
   font-weight: 850;
   word-break: break-all;
 }
@@ -357,7 +361,7 @@ export default {
   height: 44rpx;
   border-radius: 50%;
   background: var(--app-soft-bg, #eef5f2);
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -399,7 +403,7 @@ export default {
   align-items: center;
   justify-content: center;
   background: var(--app-soft-bg, #eef5f2);
-  color: var(--app-primary-dark, #226f63);
+  color: var(--app-primary, #d3a414);
   font-size: 30rpx;
   font-weight: 800;
   flex-shrink: 0;
@@ -439,7 +443,7 @@ export default {
 }
 
 .history-amount {
-  color: var(--app-positive-color, #226f63);
+  color: var(--app-positive-color, #d3a414);
   font-size: 30rpx;
   font-weight: 750;
   flex-shrink: 0;
@@ -467,7 +471,7 @@ export default {
   box-sizing: border-box;
   background: var(--app-page-bg, #f3f6f8);
   border-top: 1rpx solid var(--app-border, #edf1f4);
-  box-shadow: 0 -12rpx 28rpx rgba(15, 23, 42, 0.08);
+  box-shadow: 0 -6rpx 18rpx rgba(15, 23, 42, 0.06);
   z-index: 20;
 }
 
@@ -589,7 +593,7 @@ export default {
   height: 88rpx;
   line-height: 88rpx;
   border-radius: 999rpx;
-  background: var(--app-primary, #e8c56d);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
   font-size: 31rpx;
   font-weight: 700;

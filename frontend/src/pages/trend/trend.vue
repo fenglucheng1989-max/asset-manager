@@ -1,135 +1,134 @@
-﻿<template>
-  <view class="container">
+<template>
+  <view class="container" :style="themeVars">
+    <!-- Compact Hero -->
     <view class="trend-hero">
       <view class="hero-row">
-        <view>
-          <text class="hero-label">当前净资产</text>
+        <view class="hero-left">
+          <text class="hero-label">净资产</text>
           <text class="hero-value">{{ formatMoney(overview.netWorth) }}</text>
+          <view class="hero-change-row" v-if="periodChangeText">
+            <text :class="['hero-change-tag', periodChange >= 0 ? 'up' : 'down']">
+              {{ periodChange >= 0 ? '↑' : '↓' }} {{ formatMoney(Math.abs(periodChange)) }}
+            </text>
+            <text class="hero-change-period">较上期</text>
+          </view>
         </view>
         <button class="snapshot-btn" :disabled="isSnapshotSaving" @click="handleCreateSnapshot">
           {{ isSnapshotSaving ? '记录中' : snapshotButtonText }}
         </button>
       </view>
-      <view class="hero-meta">
-        <view>
-          <text class="meta-label">总资产</text>
-          <text class="meta-value">{{ formatMoney(overview.totalAsset) }}</text>
-        </view>
-        <view>
-          <text class="meta-label">总负债</text>
-          <text class="meta-value liability">{{ formatMoney(overview.totalLiability) }}</text>
-        </view>
-      </view>
     </view>
 
+    <!-- Chart Section -->
     <view class="chart-section">
-      <view class="section-header">
+      <view class="chart-header">
         <text class="section-title">资产走势</text>
-        <text class="section-subtitle">{{ chartSubtitle }}</text>
-      </view>
-
-      <view class="range-tabs">
-        <view
-          v-for="item in rangeOptions"
-          :key="item.value"
-          class="range-tab"
-          :class="{ active: chartRange === item.value }"
-          @click="chartRange = item.value"
-        >
-          <text>{{ item.label }}</text>
-        </view>
-      </view>
-
-      <view class="trend-chart" v-if="chartHasData">
-        <view class="line-chart">
-          <view class="chart-grid-line top"></view>
-          <view class="chart-grid-line mid"></view>
-          <view class="chart-grid-line bottom"></view>
+        <view class="range-tabs">
           <view
-            v-for="segment in lineSegments"
-            :key="segment.key"
-            class="line-segment"
-            :style="segment.style"
-          ></view>
-          <view
-            v-for="point in linePoints"
-            :key="point.key"
-            class="line-point"
-            :style="{ left: point.x + '%', bottom: point.y + '%' }"
-            @click="selectChartPoint(point)"
-          ></view>
-        </view>
-        <view class="chart-tooltip" v-if="selectedPoint">
-          <text class="tooltip-title">{{ selectedPoint.label || '当前点' }}</text>
-          <text class="tooltip-value">{{ formatMoney(selectedPoint.value) }}</text>
-          <text class="tooltip-sub">{{ selectedPointChangeText }}</text>
-        </view>
-        <view class="chart-axis">
-          <view class="axis-label" v-for="item in chartItems" :key="item.key">
+            v-for="item in rangeOptions"
+            :key="item.value"
+            :class="['range-tab', { active: chartRange === item.value }]"
+            @click="chartRange = item.value"
+          >
             <text>{{ item.label }}</text>
           </view>
         </view>
       </view>
 
-      <view class="empty-card" v-else>
-        <text>记录资产快照后，将在这里显示全年净资产走势。</text>
-      </view>
-    </view>
-
-    <view class="ranking-section">
-      <view class="section-header">
-        <text class="section-title">账户金额排行</text>
-        <text class="section-subtitle">按折合金额从高到低</text>
-      </view>
-
-      <view class="ranking-list" v-if="rankedAccounts.length > 0">
-        <view class="ranking-item" v-for="(account, index) in rankedAccounts" :key="account.id">
-          <view class="rank-badge">
-            <text>{{ index + 1 }}</text>
+      <view class="trend-chart" v-if="chartHasData">
+        <view class="chart-body">
+          <view class="chart-y-axis">
+            <text class="y-label">{{ formatCompact(chartMax) }}</text>
+            <text class="y-label">{{ formatCompact(chartMedian) }}</text>
+            <text class="y-label">{{ formatCompact(chartMin) }}</text>
           </view>
-          <view class="rank-main">
-            <view class="rank-row">
-              <text class="rank-name">{{ account.name }}</text>
-              <text :class="['rank-amount', { liability: account.isLiability }]">
-                {{ account.isLiability ? '-' : '' }}{{ formatMoney(account.baseAmount) }}
-              </text>
+          <view class="chart-plot" @touchend.stop>
+            <view class="chart-grid-line top"></view>
+            <view class="chart-grid-line mid"></view>
+            <view class="chart-grid-line bottom"></view>
+            <view
+              v-for="segment in lineSegments"
+              :key="segment.key"
+              class="line-segment"
+              :style="segment.style"
+            ></view>
+            <view
+              v-for="point in linePoints"
+              :key="point.key"
+              class="line-point-hit"
+              :style="{ left: point.x + '%', bottom: point.y + '%' }"
+              @click="selectChartPoint(point)"
+            >
+              <view class="line-point" :class="{ active: selectedPoint && selectedPoint.key === point.key }"></view>
             </view>
-            <view class="rank-row sub">
-              <text>{{ getAccountTypeName(account.accountType) }}</text>
-              <text>{{ account.structurePercent }}%</text>
-            </view>
-            <view class="rank-row currency" v-if="account.currency && account.currency !== 'CNY'">
-              <text></text>
-              <text>{{ account.currency }} {{ Number(account.currentBalance || 0).toFixed(2) }}</text>
-            </view>
-            <view class="rank-track">
-              <view class="rank-bar" :style="{ width: account.rankPercent + '%', backgroundColor: getAccountAccent(index) }"></view>
-            </view>
+          </view>
+        </view>
+        <view class="chart-x-axis">
+          <view class="axis-label" v-for="item in chartAxisLabels" :key="item.key">
+            <text>{{ item.label }}</text>
+          </view>
+        </view>
+        <view class="chart-info-bar" v-if="selectedPoint">
+          <view class="info-bar-left">
+            <text class="info-bar-dot"></text>
+            <text class="info-bar-label">{{ selectedPoint.label }}</text>
+          </view>
+          <view class="info-bar-right">
+            <text class="info-bar-value">{{ formatMoney(selectedPoint.value) }}</text>
+            <text v-if="selectedPointChangeText" :class="['info-bar-delta', selectedPointDelta > 0 ? 'up' : 'down']">{{ selectedPointChangeText }}</text>
           </view>
         </view>
       </view>
 
       <view class="empty-card" v-else>
-        <text>暂无账户金额排行。</text>
+        <text>记录资产快照后，将在这里显示净资产走势。</text>
       </view>
     </view>
 
+    <!-- Stats Summary -->
+    <view class="stats-row" v-if="chartHasData">
+      <view class="stat-card">
+        <text class="stat-label">期间最高</text>
+        <text class="stat-value up">{{ formatMoney(periodPeak) }}</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-label">期间最低</text>
+        <text class="stat-value muted">{{ formatMoney(periodValley) }}</text>
+      </view>
+    </view>
+
+    <!-- Snapshot History -->
     <view class="history-section">
       <view class="section-header">
         <text class="section-title">快照记录</text>
-        <text class="section-subtitle">分页加载，已显示 {{ snapshots.length }} 条</text>
+        <text class="section-subtitle">共 {{ snapshots.length }} 条</text>
       </view>
 
-      <view class="history-list" v-if="snapshots.length > 0">
-        <view class="history-item" v-for="item in visibleSnapshots" :key="item.id || item.snapshotDate">
-          <view>
-            <text class="history-date">{{ formatSnapshotDate(item.snapshotDate) }}</text>
-            <text class="history-sub">资产 {{ formatMoney(item.totalAsset) }} / 负债 {{ formatMoney(item.totalLiability) }}</text>
+      <view class="timeline" v-if="snapshots.length > 0">
+        <template v-for="group in groupedSnapshots" :key="group.key">
+          <view class="tl-month">
+            <text class="tl-month-label">{{ group.label }}</text>
           </view>
-          <text class="history-value">{{ formatMoney(item.netWorth) }}</text>
-        </view>
-        <button class="load-more-btn" v-if="hasMoreSnapshots" :disabled="isLoadingMoreSnapshots" @click="loadMoreSnapshots">
-          {{ isLoadingMoreSnapshots ? '加载中' : '查看更多' }}
+          <view class="tl-item" v-for="item in group.items" :key="item.id || item.snapshotDate">
+            <view class="tl-item-body">
+              <text class="tl-item-date">{{ formatSnapshotDay(item.snapshotDate) }}</text>
+              <view class="tl-item-values">
+                <text class="tl-item-value">{{ formatMoney(item.netWorth) }}</text>
+                <text
+                  v-if="item.change !== null"
+                  :class="['tl-item-change', item.change >= 0 ? 'up' : 'down']"
+                >{{ formatSignedMoney(item.change) }}</text>
+              </view>
+            </view>
+          </view>
+        </template>
+        <button
+          class="load-more-btn"
+          v-if="hasMoreSnapshots"
+          :disabled="isLoadingMoreSnapshots"
+          @click="loadMoreSnapshots"
+        >
+          {{ isLoadingMoreSnapshots ? '加载中' : '加载更早记录' }}
         </button>
       </view>
 
@@ -142,7 +141,8 @@
 
 <script>
 import { useAssetStore } from '../../store/asset'
-import { formatMoney, getAccountTypeName, toBaseAmount } from '../../utils/money'
+import { formatMoney } from '../../utils/money'
+import { getThemeMode, getThemeVars } from '../../utils/theme'
 
 const DEFAULT_OVERVIEW = {
   totalAsset: 0,
@@ -165,6 +165,7 @@ export default {
       isLoadingMoreSnapshots: false,
       selectedPoint: null,
       chartRange: 'month',
+      themeVars: getThemeVars(),
       rangeOptions: [
         { label: '日', value: 'day' },
         { label: '月', value: 'month' },
@@ -183,31 +184,11 @@ export default {
     snapshotButtonText() {
       return this.hasTodaySnapshot ? '更新今日' : '记录今日'
     },
-    reversedSnapshots() {
-      return [...this.snapshots].reverse()
-    },
-    visibleSnapshots() {
-      return this.reversedSnapshots
-    },
-    selectedPointChangeText() {
-      if (!this.selectedPoint) return ''
-      const points = this.linePoints
-      const index = points.findIndex(item => item.key === this.selectedPoint.key)
-      if (index <= 0) return '暂无环比'
-      const previous = points[index - 1]
-      const change = Number(this.selectedPoint.value || 0) - Number(previous.value || 0)
-      return `环比 ${this.formatSignedMoney(change)}`
-    },
     currentYear() {
       return new Date().getFullYear()
     },
     currentMonth() {
       return new Date().getMonth() + 1
-    },
-    chartSubtitle() {
-      if (this.chartRange === 'day') return `${this.currentMonth} 月每日快照`
-      if (this.chartRange === 'month') return `${this.currentYear} 年每月快照`
-      return '按年份汇总快照'
     },
     chartItems() {
       if (this.chartRange === 'day') return this.buildDayTrend()
@@ -217,6 +198,18 @@ export default {
     chartHasData() {
       return this.chartItems.some(item => item.value !== undefined)
     },
+    chartValues() {
+      return this.chartItems.map(item => item.value).filter(v => v !== undefined)
+    },
+    chartMax() {
+      return this.chartValues.length ? Math.max(...this.chartValues) : 0
+    },
+    chartMin() {
+      return this.chartValues.length ? Math.min(...this.chartValues) : 0
+    },
+    chartMedian() {
+      return Math.round((this.chartMax + this.chartMin) / 2)
+    },
     linePoints() {
       const items = this.chartItems
       const count = items.length
@@ -224,7 +217,7 @@ export default {
         .map((item, index) => ({
           ...item,
           x: count <= 1 ? 50 : 4 + (index / (count - 1)) * 92,
-          y: Math.max(8, Math.min(88, item.height))
+          y: Math.max(10, Math.min(86, item.height))
         }))
         .filter(item => item.value !== undefined)
     },
@@ -249,36 +242,75 @@ export default {
         }
       })
     },
-    rankedAccounts() {
-      const rows = this.accounts
-        .map(account => ({
-          ...account,
-          baseAmount: toBaseAmount(account)
-        }))
-        .sort((a, b) => b.baseAmount - a.baseAmount)
-      const total = rows.reduce((sum, item) => sum + Math.abs(item.baseAmount), 0)
-      return rows.map(item => ({
-        ...item,
-        structurePercent: total > 0 ? Math.round(Math.abs(item.baseAmount) / total * 100) : 0,
-        rankPercent: total > 0 ? Math.max(4, Math.round(Math.abs(item.baseAmount) / total * 100)) : 0
-      }))
+    selectedPointDelta() {
+      if (!this.selectedPoint) return 0
+      const points = this.linePoints
+      const index = points.findIndex(item => item.key === this.selectedPoint.key)
+      if (index <= 0) return 0
+      const previous = points[index - 1]
+      return Number(this.selectedPoint.value || 0) - Number(previous.value || 0)
+    },
+    selectedPointChangeText() {
+      if (!this.selectedPoint) return ''
+      const delta = this.selectedPointDelta
+      if (delta === 0) return ''
+      return `${delta > 0 ? '+' : ''}${this.formatCompact(delta)}`
+    },
+    periodChange() {
+      const values = this.chartValues
+      if (values.length < 2) return 0
+      return values[values.length - 1] - values[0]
+    },
+    periodChangeText() {
+      return this.chartValues.length >= 2
+    },
+    periodPeak() {
+      return this.chartMax
+    },
+    periodValley() {
+      return this.chartMin
+    },
+    chartAxisLabels() {
+      const items = this.chartItems
+      return items.filter(item => item.label)
+    },
+    groupedSnapshots() {
+      const groups = []
+      const reversed = [...this.snapshots].reverse()
+      let currentMonth = ''
+      let currentGroup = null
+      reversed.forEach((item, index) => {
+        const prev = index > 0 ? reversed[index - 1] : null
+        const dateStr = String(item.snapshotDate || '')
+        const parts = dateStr.split('-')
+        const monthKey = parts.length >= 2 ? `${parts[0]}-${parts[1]}` : dateStr
+        const monthLabel = parts.length >= 2 ? `${Number(parts[0])}年${Number(parts[1])}月` : dateStr
+        const change = prev ? Number(item.netWorth || 0) - Number(prev.netWorth || 0) : null
+
+        if (monthKey !== currentMonth) {
+          currentMonth = monthKey
+          currentGroup = { key: monthKey, label: monthLabel, items: [] }
+          groups.push(currentGroup)
+        }
+        currentGroup.items.push({
+          ...item,
+          change: change !== null ? Math.round(change * 100) / 100 : null
+        })
+      })
+      return groups
+    }
+  },
+  watch: {
+    chartRange() {
+      this.selectedPoint = null
     }
   },
   onShow() {
+    this.themeVars = getThemeVars(getThemeMode())
     this.refreshData()
   },
   methods: {
     formatMoney,
-    getAccountTypeName,
-    getAccountAccent(index) {
-      const palette = [
-        'var(--app-primary, #2EBD85)',
-        'var(--app-accent, #f4c95d)',
-        'var(--app-positive-color, #226f63)',
-        'var(--app-muted, #64748b)'
-      ]
-      return palette[index % palette.length]
-    },
     buildMonthTrend() {
       const byMonth = new Map()
       this.snapshots.forEach(item => {
@@ -292,7 +324,6 @@ export default {
       }))
     },
     buildDayTrend() {
-      const now = new Date()
       const days = new Date(this.currentYear, this.currentMonth, 0).getDate()
       const byDay = new Map()
       this.snapshots.forEach(item => {
@@ -332,6 +363,22 @@ export default {
         height: item.value === undefined ? 0 : range === 0 ? 54 : 18 + ((item.value - min) / range) * 72
       }))
     },
+    formatSignedMoney(value) {
+      const amount = Number(value || 0)
+      if (amount === 0) return '¥0.00'
+      return `${amount > 0 ? '+' : '-'}${formatMoney(Math.abs(amount))}`
+    },
+    formatCompact(value) {
+      const num = Math.abs(Number(value || 0))
+      if (num >= 10000) return `${(num / 10000).toFixed(1)}万`
+      return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    },
+    formatSnapshotDay(value) {
+      if (!value) return '--'
+      const parts = String(value).split('-')
+      if (parts.length !== 3) return value
+      return `${Number(parts[1])}月${Number(parts[2])}日`
+    },
     async refreshData() {
       if (this.isLoading) return
       this.isLoading = true
@@ -350,7 +397,7 @@ export default {
       }
     },
     selectChartPoint(point) {
-      this.selectedPoint = point
+      this.selectedPoint = this.selectedPoint && this.selectedPoint.key === point.key ? null : point
     },
     async loadMoreSnapshots() {
       if (this.isLoadingMoreSnapshots || !this.hasMoreSnapshots) return
@@ -386,17 +433,6 @@ export default {
         this.isSnapshotSaving = false
       }
     },
-    formatSignedMoney(value) {
-      const amount = Number(value || 0)
-      if (amount === 0) return '¥0.00'
-      return `${amount > 0 ? '+' : '-'}${formatMoney(Math.abs(amount))}`
-    },
-    formatSnapshotDate(value) {
-      if (!value) return '--'
-      const parts = String(value).split('-')
-      if (parts.length !== 3) return value
-      return `${Number(parts[1])}月${Number(parts[2])}日`
-    },
     getTodayText() {
       const now = new Date()
       const month = String(now.getMonth() + 1).padStart(2, '0')
@@ -410,58 +446,179 @@ export default {
 <style scoped>
 .container {
   min-height: 100vh;
-  padding: 28rpx 24rpx calc(96rpx + env(safe-area-inset-bottom));
+  background: var(--app-page-bg, #f5f6f8);
+  padding: 28rpx 24rpx calc(120rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
-.trend-hero,
-.chart-section,
-.ranking-section,
-.history-section {
+/* ---- Hero ---- */
+.trend-hero {
+  position: relative;
   background: var(--app-card-bg, #ffffff);
+  border-radius: 18rpx;
+  padding: 34rpx 30rpx;
+  margin-bottom: 20rpx;
   border: 1rpx solid var(--app-border, #edf1f4);
-  border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 26rpx;
-  box-shadow: var(--app-shadow, 0 12rpx 30rpx rgba(26, 42, 58, 0.06));
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
 }
 
-.trend-chart {
-  padding: 16rpx 8rpx 4rpx;
+.hero-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+
+.hero-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-label {
+  display: block;
+  color: var(--app-muted, #7b8798);
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.hero-value {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--app-primary, #d3a414);
+  font-size: 40rpx;
+  line-height: 52rpx;
+  font-weight: 800;
+  word-break: break-all;
+}
+
+.hero-change-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-top: 14rpx;
+}
+
+.hero-change-tag {
+  padding: 4rpx 14rpx;
+  border-radius: 6rpx;
+  font-size: 23rpx;
+  line-height: 32rpx;
+  font-weight: 700;
+}
+
+.hero-change-tag.up {
+  background: rgba(211, 164, 20, 0.12);
+  color: var(--app-primary, #d3a414);
+}
+
+.hero-change-tag.down {
+  background: rgba(217, 74, 98, 0.12);
+  color: var(--app-liability-color, #d94a62);
+}
+
+.hero-change-period {
+  color: var(--app-text, #17202a);
+  opacity: 0.48;
+  font-size: 22rpx;
+}
+
+.snapshot-btn {
+  flex-shrink: 0;
+  margin: 0;
+  height: 64rpx;
+  line-height: 64rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  background: rgba(211, 164, 20, 0.10);
+  color: var(--app-primary, #d3a414);
+  font-size: 25rpx;
+  font-weight: 700;
+  border: 1rpx solid rgba(211, 164, 20, 0.18);
+}
+
+/* ---- Chart Card ---- */
+.chart-section {
+  background: var(--app-card-bg, #ffffff);
+  border: 1rpx solid var(--app-border, #edf1f4);
+  border-radius: 18rpx;
+  padding: 30rpx 26rpx;
+  margin-bottom: 20rpx;
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-bottom: 22rpx;
+}
+
+.section-title {
+  color: var(--app-text, #17202a);
+  font-size: 31rpx;
+  font-weight: 750;
+  flex-shrink: 0;
 }
 
 .range-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6rpx;
-  padding: 6rpx;
-  border-radius: 14rpx;
+  display: flex;
+  gap: 4rpx;
+  padding: 4rpx;
+  border-radius: 999rpx;
   background: var(--app-soft-bg, #f2f5f7);
-  margin-bottom: 18rpx;
 }
 
 .range-tab {
-  height: 58rpx;
-  border-radius: 11rpx;
+  height: 50rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--app-muted, #64748b);
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 650;
 }
 
 .range-tab.active {
-  background: var(--app-primary, #e8c56d);
+  background: var(--app-primary, #d3a414);
   color: #ffffff;
-  box-shadow: 0 8rpx 18rpx rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4rpx 12rpx rgba(15, 23, 42, 0.10);
 }
 
-.line-chart {
+/* ---- Chart Body ---- */
+.trend-chart {
+  padding: 0 4rpx;
+}
+
+.chart-body {
+  display: flex;
+  gap: 12rpx;
+  align-items: stretch;
+}
+
+.chart-y-axis {
+  width: 70rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0 0 10rpx;
+  flex-shrink: 0;
+}
+
+.y-label {
+  color: var(--app-faint, #94a3b8);
+  font-size: 19rpx;
+  line-height: 28rpx;
+  text-align: right;
+}
+
+.chart-plot {
+  flex: 1;
   position: relative;
-  height: 260rpx;
-  margin: 8rpx 8rpx 0;
-  overflow: hidden;
+  height: 280rpx;
+  overflow: visible;
   box-sizing: border-box;
 }
 
@@ -474,7 +631,7 @@ export default {
 }
 
 .chart-grid-line.top {
-  top: 12%;
+  top: 14rpx;
 }
 
 .chart-grid-line.mid {
@@ -482,59 +639,114 @@ export default {
 }
 
 .chart-grid-line.bottom {
-  bottom: 0;
+  bottom: 12rpx;
 }
 
 .line-segment {
   position: absolute;
-  height: 4rpx;
+  height: 5rpx;
   border-radius: 999rpx;
-  background: var(--app-primary, #2ebd85);
+  background: var(--app-primary, #d3a414);
   transform-origin: 0 50%;
-  box-shadow: 0 4rpx 10rpx rgba(46, 189, 133, 0.2);
+  box-shadow: 0 0 12rpx rgba(211, 164, 20, 0.18);
+}
+
+.line-point-hit {
+  position: absolute;
+  margin-left: -22rpx;
+  margin-bottom: -22rpx;
+  width: 44rpx;
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
 }
 
 .line-point {
-  position: absolute;
-  width: 18rpx;
-  height: 18rpx;
-  margin-left: -9rpx;
-  margin-bottom: -9rpx;
+  width: 22rpx;
+  height: 22rpx;
   border-radius: 50%;
-  background: var(--app-accent, #f4c95d);
+  background: var(--app-primary, #d3a414);
   border: 4rpx solid var(--app-card-bg, #ffffff);
-  box-shadow: 0 2rpx 10rpx rgba(23, 32, 42, 0.18);
+  box-shadow: 0 2rpx 8rpx rgba(15, 23, 42, 0.16);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.chart-axis {
-  display: flex;
-  justify-content: space-between;
-  gap: 8rpx;
-  padding: 14rpx 0 0;
+.line-point.active {
+  transform: scale(1.35);
+  box-shadow: 0 0 16rpx rgba(211, 164, 20, 0.25);
 }
 
-.chart-tooltip {
-  margin: 10rpx 8rpx 0;
-  padding: 18rpx 20rpx;
-  border-radius: 14rpx;
-  background: var(--app-input-bg, #f6f8fb);
+/* ---- Chart Info Bar ---- */
+.chart-info-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16rpx;
+  margin-top: 18rpx;
+  padding: 16rpx 20rpx;
+  border-radius: 12rpx;
+  background: var(--app-soft-bg, #f3f6f8);
 }
 
-.tooltip-title,
-.tooltip-sub {
+.info-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  min-width: 0;
+  flex: 1;
+}
+
+.info-bar-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: var(--app-primary, #d3a414);
+  flex-shrink: 0;
+}
+
+.info-bar-label {
   color: var(--app-muted, #7b8798);
   font-size: 23rpx;
+  font-weight: 650;
 }
 
-.tooltip-value {
-  flex: 1;
+.info-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-shrink: 0;
+}
+
+.info-bar-value {
   color: var(--app-text, #17202a);
-  font-size: 28rpx;
+  font-size: 27rpx;
   font-weight: 800;
+}
+
+.info-bar-delta {
+  font-size: 23rpx;
+  font-weight: 700;
+  min-width: 80rpx;
+  text-align: right;
+}
+
+.info-bar-delta.up {
+  color: var(--app-positive-color, #1f8f72);
+}
+
+.info-bar-delta.down {
+  color: var(--app-liability-color, #d94a62);
+}
+
+/* ---- X Axis ---- */
+.chart-x-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 4rpx;
+  padding: 12rpx 0 0;
+  margin-left: 82rpx;
 }
 
 .axis-label {
@@ -543,261 +755,209 @@ export default {
   text-align: center;
 }
 
-.chart-month {
-  color: var(--app-muted, #7b8798);
-  font-size: 20rpx;
-  line-height: 28rpx;
-}
-
 .axis-label text {
   color: var(--app-muted, #7b8798);
   font-size: 20rpx;
   line-height: 28rpx;
 }
 
-.ranking-list {
+/* ---- Stats Row ---- */
+.stats-row {
   display: flex;
-  flex-direction: column;
+  gap: 14rpx;
+  margin-bottom: 20rpx;
 }
 
-.ranking-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 18rpx;
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid var(--app-border, #edf1f4);
-}
-
-.ranking-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.rank-badge {
-  width: 48rpx;
-  height: 48rpx;
-  border-radius: 14rpx;
-  background: var(--app-soft-bg, #f2f6f4);
-  color: var(--app-primary-dark, #226f63);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24rpx;
-  font-weight: 800;
-  flex-shrink: 0;
-}
-
-.rank-main {
+.stat-card {
   flex: 1;
   min-width: 0;
+  padding: 22rpx 18rpx;
+  border-radius: 16rpx;
+  background: var(--app-card-bg, #ffffff);
+  border: 1rpx solid var(--app-border, #edf1f4);
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
 }
 
-.rank-row {
+.stat-label {
+  display: block;
+  color: var(--app-muted, #7b8798);
+  font-size: 22rpx;
+  line-height: 30rpx;
+  margin-bottom: 8rpx;
+}
+
+.stat-value {
+  display: block;
+  font-size: 27rpx;
+  line-height: 38rpx;
+  font-weight: 800;
+  word-break: break-all;
+}
+
+.stat-value.up {
+  color: var(--app-positive-color, #1f8f72);
+}
+
+.stat-value.down {
+  color: var(--app-liability-color, #d94a62);
+}
+
+.stat-value.muted {
+  color: var(--app-muted, #64748b);
+  font-weight: 700;
+}
+
+/* ---- History ---- */
+.history-section {
+  background: var(--app-card-bg, #ffffff);
+  border: 1rpx solid var(--app-border, #edf1f4);
+  border-radius: 18rpx;
+  padding: 30rpx 26rpx;
+  margin-bottom: 20rpx;
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
+}
+
+.section-header {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 20rpx;
+  gap: 16rpx;
+  margin-bottom: 10rpx;
 }
 
-.rank-row.sub {
-  margin-top: 6rpx;
+.section-subtitle {
   color: var(--app-muted, #7b8798);
   font-size: 23rpx;
   line-height: 32rpx;
 }
 
-.rank-row.currency {
-  margin-top: 2rpx;
-  color: var(--app-faint, #94a3b8);
-  font-size: 22rpx;
-  line-height: 30rpx;
-}
-
-.rank-name {
-  color: var(--app-text, #17202a);
-  font-size: 29rpx;
-  line-height: 38rpx;
-  font-weight: 750;
-}
-
-.rank-amount {
-  color: var(--app-text, #17202a);
-  font-size: 28rpx;
-  line-height: 38rpx;
-  font-weight: 800;
-  flex-shrink: 0;
-}
-
-.rank-amount.liability {
-  color: var(--app-liability-color, #d94a62);
-}
-
-.rank-track {
-  height: 12rpx;
-  margin-top: 16rpx;
-  border-radius: 999rpx;
-  background: var(--app-soft-bg, #edf2f5);
-  overflow: hidden;
-}
-
-.rank-bar {
-  height: 12rpx;
-  border-radius: 999rpx;
-}
-
-.trend-hero {
+/* ---- Timeline ---- */
+.timeline {
   position: relative;
-  overflow: hidden;
-  background: var(--app-outfit-header-bg, var(--app-hero-gradient, linear-gradient(135deg, #14202d 0%, #20384a 58%, #22564d 100%)));
-  color: var(--app-outfit-header-text, var(--app-hero-text, #ffffff));
+  padding-left: 48rpx;
 }
 
-.trend-hero::before {
+.timeline::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: var(--app-outfit-header-pattern, none);
-  opacity: 0.86;
-  pointer-events: none;
+  left: 15rpx;
+  top: 6rpx;
+  bottom: 6rpx;
+  width: 2rpx;
+  border-radius: 1rpx;
+  background: var(--app-border, #e2e8ef);
 }
 
-.hero-row,
-.hero-meta {
+/* Month marker */
+.tl-month {
   position: relative;
+  padding: 20rpx 0 6rpx;
+}
+
+.tl-month:first-child {
+  padding-top: 0;
+}
+
+.tl-month::before {
+  content: '';
+  position: absolute;
+  left: -33rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 50%;
+  background: var(--app-primary, #d3a414);
+  border: 4rpx solid var(--app-card-bg, #ffffff);
+  box-shadow: 0 0 0 5rpx rgba(211, 164, 20, 0.18);
   z-index: 1;
 }
 
-.hero-label,
-.meta-label {
-  display: block;
-  color: var(--app-outfit-header-sub, var(--app-hero-sub, rgba(255, 255, 255, 0.72)));
+.tl-month-label {
+  color: var(--app-muted, #7b8798);
   font-size: 24rpx;
-  line-height: 34rpx;
-}
-
-.hero-value {
-  display: block;
-  margin-top: 14rpx;
-  color: var(--app-outfit-header-accent, var(--app-hero-accent, #f4c95d));
-  font-size: 58rpx;
-  line-height: 72rpx;
-  font-weight: 800;
-  word-break: break-all;
-}
-
-.snapshot-btn {
-  flex-shrink: 0;
-  margin: 0;
-  height: 68rpx;
-  line-height: 68rpx;
-  padding: 0 24rpx;
-  border-radius: 14rpx;
-  background: var(--app-outfit-header-accent, rgba(255, 255, 255, 0.14));
-  color: var(--app-outfit-header-text, var(--app-hero-text, #f4c95d));
-  font-size: 26rpx;
-  font-weight: 700;
-  opacity: 0.9;
-}
-
-.hero-meta {
-  margin-top: 30rpx;
-  padding-top: 24rpx;
-  border-top: 1rpx solid var(--app-section-bg, rgba(255, 255, 255, 0.14));
-}
-
-.meta-value {
-  display: block;
-  margin-top: 6rpx;
-  color: var(--app-outfit-header-sub, var(--app-hero-sub, rgba(255, 255, 255, 0.72)));
-  font-size: 30rpx;
   font-weight: 700;
 }
 
-.meta-value.liability {
-  color: var(--app-liability-color, #ff9aa9);
+/* Item */
+.tl-item {
+  position: relative;
+  padding: 12rpx 0;
 }
 
-.section-header,
-.history-item {
+.tl-item::before {
+  content: '';
+  position: absolute;
+  left: -36rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: var(--app-bg, #f5f6f8);
+  border: 3rpx solid var(--app-border, #dde3ea);
+  z-index: 1;
+}
+
+.tl-item-body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 22rpx;
+  gap: 16rpx;
+  min-width: 0;
 }
 
-.section-header {
-  align-items: flex-start;
-  margin-bottom: 24rpx;
-}
-
-.section-title {
+.tl-item-date {
   color: var(--app-text, #17202a);
-  font-size: 32rpx;
-  font-weight: 700;
-}
-
-.section-subtitle {
-  color: var(--app-muted, #7b8798);
-  font-size: 24rpx;
-  line-height: 34rpx;
-}
-
-.empty-card {
-  padding: 24rpx;
-  border-radius: 14rpx;
-  background: var(--app-input-bg, #f6f8fb);
-}
-
-.empty-card {
-  color: var(--app-muted, #7b8798);
   font-size: 26rpx;
-  line-height: 38rpx;
+  font-weight: 650;
 }
 
-.history-list {
+.tl-item-values {
   display: flex;
-  flex-direction: column;
-}
-
-.history-item {
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid var(--app-border, #edf1f4);
-}
-
-.history-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.history-date {
-  display: block;
-  color: var(--app-text, #17202a);
-  font-size: 28rpx;
-  font-weight: 700;
-}
-
-.history-sub {
-  display: block;
-  margin-top: 8rpx;
-  color: var(--app-muted, #7b8798);
-  font-size: 23rpx;
-  line-height: 34rpx;
-}
-
-.history-value {
+  align-items: center;
+  gap: 12rpx;
   flex-shrink: 0;
+}
+
+.tl-item-value {
   color: var(--app-text, #17202a);
-  font-size: 30rpx;
+  font-size: 27rpx;
   font-weight: 800;
+}
+
+.tl-item-change {
+  font-size: 23rpx;
+  font-weight: 700;
+  min-width: 80rpx;
+  text-align: right;
+}
+
+.tl-item-change.up {
+  color: var(--app-positive-color, #1f8f72);
+}
+
+.tl-item-change.down {
+  color: var(--app-liability-color, #d94a62);
 }
 
 .load-more-btn {
   margin: 22rpx 0 0;
-  height: 76rpx;
-  line-height: 76rpx;
-  border-radius: 999rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 14rpx;
   background: var(--app-soft-bg, #f6f8fb);
-  color: var(--app-primary-dark, #226f63);
-  font-size: 28rpx;
+  color: var(--app-primary, #d3a414);
+  font-size: 26rpx;
+}
+
+/* ---- Empty ---- */
+.empty-card {
+  padding: 32rpx 24rpx;
+  border-radius: 14rpx;
+  background: var(--app-input-bg, #f6f8fb);
+  color: var(--app-muted, #7b8798);
+  font-size: 26rpx;
+  line-height: 38rpx;
 }
 </style>
