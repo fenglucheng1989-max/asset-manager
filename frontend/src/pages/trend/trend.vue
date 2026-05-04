@@ -943,12 +943,13 @@ export default {
 
 .load-more-btn {
   margin: 22rpx 0 0;
-  height: 72rpx;
-  line-height: 72rpx;
-  border-radius: 14rpx;
-  background: var(--app-soft-bg, #f6f8fb);
+  height: 78rpx;
+  line-height: 78rpx;
+  border-radius: 999rpx;
+  background: var(--app-card-bg, #ffffff);
   color: var(--app-primary, #d3a414);
   font-size: 26rpx;
+  border: 1rpx solid var(--app-border, #edf1f4);
 }
 
 /* ---- Empty ---- */

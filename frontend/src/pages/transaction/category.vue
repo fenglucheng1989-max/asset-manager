@@ -20,6 +20,9 @@
           @click="form.colorHex = color"
         ></view>
       </view>
+    </view>
+
+    <view class="btn-group">
       <button class="save-btn" @click="saveCategory">{{ editingId ? '保存分类' : '新增分类' }}</button>
     </view>
 
@@ -180,8 +183,12 @@ export default {
 }
 
 .form-card {
+  background: var(--app-card-bg, #ffffff);
+  border: 1rpx solid var(--app-border, #edf1f4);
+  border-radius: 20rpx;
+  box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(15, 23, 42, 0.045));
   padding: 28rpx;
-  margin-bottom: 22rpx;
+  margin-bottom: 24rpx;
 }
 
 .form-row,
@@ -227,6 +234,10 @@ export default {
 
 .color-dot.active {
   border-color: var(--app-text, #17202a);
+}
+
+.btn-group {
+  padding: 6rpx 4rpx 0;
 }
 
 .save-btn {

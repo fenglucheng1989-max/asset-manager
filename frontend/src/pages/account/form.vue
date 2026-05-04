@@ -1,6 +1,6 @@
 <template>
   <view class="container" :style="themeVars">
-    <view class="page-head">
+    <view class="page-hero">
       <text class="page-title">{{ isEdit ? '编辑账户' : '新增账户' }}</text>
     </view>
     <view class="account-kind-tabs">
@@ -374,16 +374,16 @@ export default {
   background: var(--app-page-bg, #f8f9fb);
 }
 
-.page-head {
-  padding: 8rpx 4rpx 22rpx;
+.page-hero {
+  padding: 20rpx 4rpx 28rpx;
 }
 
 .page-title {
   display: block;
+  font-size: 40rpx;
+  line-height: 52rpx;
+  font-weight: 900;
   color: var(--app-text, #17202a);
-  font-size: 38rpx;
-  line-height: 48rpx;
-  font-weight: 850;
 }
 
 .account-kind-tabs {

@@ -509,9 +509,9 @@ tbackground: var(--app-page-bg, #f8f9fb);
 .login-tip-btn {
   background: var(--app-primary, #d3a414);
   color: #ffffff;
-  border-radius: 12rpx;
-  height: 76rpx;
-  line-height: 76rpx;
+  border-radius: 999rpx;
+  height: 80rpx;
+  line-height: 80rpx;
   font-size: 30rpx;
 }
 
@@ -533,11 +533,12 @@ tbackground: var(--app-page-bg, #f8f9fb);
 .error-btn {
   background: var(--app-card-bg, #ffffff);
   color: var(--app-primary, #d3a414);
-  border: 1rpx solid var(--app-border, #edf1f4);
-  border-radius: 12rpx;
-  height: 72rpx;
-  line-height: 72rpx;
-  font-size: 28rpx;
+  border: 2rpx solid var(--app-primary, #d3a414);
+  border-radius: 999rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  font-size: 30rpx;
+  font-weight: 700;
 }
 
 .section-title {
@@ -873,12 +874,12 @@ tbackground: var(--app-page-bg, #f8f9fb);
   margin: 16rpx 0 0;
   height: 80rpx;
   line-height: 80rpx;
-  border-radius: 16rpx;
-  background: var(--app-soft-bg, #f2f5f7);
+  border-radius: 999rpx;
+  background: var(--app-card-bg, #ffffff);
   color: var(--app-primary, #d3a414);
-  border: 1rpx solid var(--app-border, #edf1f4);
-  font-size: 27rpx;
-  font-weight: 650;
+  border: 2rpx solid var(--app-primary, #d3a414);
+  font-size: 30rpx;
+  font-weight: 700;
 }
 
 .empty-state {

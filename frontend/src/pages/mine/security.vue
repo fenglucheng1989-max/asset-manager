@@ -101,7 +101,7 @@ export default {
 
 .form-card {
   padding: 28rpx;
-  margin-bottom: 18rpx;
+  margin-bottom: 24rpx;
   background: var(--app-card-bg, #ffffff);
   border-radius: 20rpx;
   border: 1rpx solid var(--app-border, #edf1f4);

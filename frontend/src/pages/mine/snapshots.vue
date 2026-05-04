@@ -190,6 +190,7 @@ export default {
   margin-top: 20rpx;
   height: 78rpx;
   line-height: 78rpx;
+  border-radius: 999rpx;
   background: var(--app-card-bg, #ffffff);
   color: var(--app-primary, #d3a414);
   border: 1rpx solid var(--app-border, #edf1f4);
