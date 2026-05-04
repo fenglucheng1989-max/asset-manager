@@ -55,7 +55,7 @@
         <view class="pie-ring" :style="{ background: buildPieStyle(activeStructureStats) }">
           <view class="pie-center">
             <text class="pie-label">{{ structureType === 'EXPENSE' ? '流出' : '流入' }}</text>
-            <text class="pie-value">{{ formatMoney(activeStructureTotal) }}</text>
+            <text class="pie-value">{{ formatCompactMoney(activeStructureTotal) }}</text>
           </view>
         </view>
         <view class="pie-legend">
@@ -124,7 +124,7 @@
 <script>
 import CustomTabBar from '../../custom-tab-bar/index.vue'
 import { useTransactionStore } from '../../store/transaction'
-import { formatMoney } from '../../utils/money'
+import { formatCompactMoney, formatMoney } from '../../utils/money'
 import { getThemeMode, getThemeVars } from '../../utils/theme'
 
 export default {
@@ -236,6 +236,7 @@ export default {
     this.refreshData()
   },
   methods: {
+    formatCompactMoney,
     formatMoney,
     async refreshData() {
       if (this.isLoading) return
@@ -561,13 +562,13 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 20rpx 0;
+  padding: 24rpx 24rpx 0;
 }
 
 .hero-date-row .date-nav-btn {
-  width: 46rpx;
-  height: 46rpx;
-  line-height: 42rpx;
+  width: 52rpx;
+  height: 52rpx;
+  line-height: 48rpx;
   margin: 0;
   padding: 0;
   border-radius: 50%;
@@ -593,15 +594,15 @@ export default {
 
 .hero-date-row .period-mode {
   color: var(--app-outfit-header-sub, rgba(255, 255, 255, 0.68));
-  font-size: 22rpx;
-  line-height: 30rpx;
+  font-size: 24rpx;
+  line-height: 32rpx;
   font-weight: 750;
 }
 
 .hero-overview {
   position: relative;
   z-index: 1;
-  padding: 14rpx 32rpx 24rpx;
+  padding: 24rpx 32rpx 28rpx;
   text-align: center;
 }
 
@@ -614,12 +615,13 @@ export default {
 
 .hero-value {
   display: block;
-  margin-top: 6rpx;
+  margin-top: 8rpx;
   color: var(--app-outfit-header-accent, var(--app-hero-accent, #ffd166));
-  font-size: 50rpx;
-  line-height: 60rpx;
+  font-size: 44rpx;
+  line-height: 54rpx;
   font-weight: 850;
-  word-break: break-all;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 .hero-value.negative {
@@ -810,8 +812,8 @@ export default {
 }
 
 .pie-center {
-  width: 100rpx;
-  height: 100rpx;
+  width: 134rpx;
+  height: 134rpx;
   border-radius: 50%;
   background: var(--app-card-bg, #ffffff);
   display: flex;
@@ -823,19 +825,15 @@ export default {
 
 .pie-label {
   color: var(--app-muted, #7b8798);
-  font-size: 20rpx;
-  line-height: 26rpx;
+  font-size: 22rpx;
+  line-height: 28rpx;
 }
 
 .pie-value {
-  max-width: 86rpx;
   color: var(--app-text, #17202a);
-  font-size: 19rpx;
-  line-height: 26rpx;
+  font-size: 22rpx;
+  line-height: 28rpx;
   font-weight: 850;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .pie-legend {

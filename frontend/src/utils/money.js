@@ -25,6 +25,14 @@ export function toBaseAmount(account) {
   return balance * rate
 }
 
+export function formatCompactMoney(value, symbol = '¥') {
+  const num = Math.abs(Number(value || 0))
+  if (Number.isNaN(num)) return symbol + '0'
+  if (num >= 100000000) return (num / 100000000).toFixed(2).replace(/\.?0+$/, '') + '亿'
+  if (num >= 10000) return (num / 10000).toFixed(2).replace(/\.?0+$/, '') + '万'
+  return formatMoney(value, symbol)
+}
+
 export function getAccountTypeName(type) {
   const typeMap = {
     CASH: '现金',
