@@ -4,9 +4,11 @@ import { applyTheme } from './utils/theme'
 export default {
   onLaunch() {
     applyTheme()
+    uni.hideTabBar()
   },
   onShow() {
     applyTheme()
+    uni.hideTabBar()
   }
 }
 </script>
@@ -258,14 +260,14 @@ input,
   color: var(--app-positive-color, #226f63) !important;
 }
 
-/* ---- Tab bar ---- */
-uni-tabbar .uni-tabbar {
+
+	uni-tabbar .uni-tabbar {
   left: 50% !important;
   right: auto !important;
   width: 100%;
   max-width: 480px;
   transform: translateX(-50%);
-  background: var(--app-tabbar-bg, var(--app-card-bg, #ffffff)) !important;
+  background: transparent !important;
   border-color: var(--app-tabbar-border, #edf1f4) !important;
 }
 
@@ -387,6 +389,7 @@ uni-page-head,
 .snapshot-row {
   border-color: var(--app-border, #edf1f4) !important;
 }
+
 
 /* ---- Media queries ---- */
 @media (max-width: 480px) {

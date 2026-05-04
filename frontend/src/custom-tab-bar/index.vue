@@ -4,7 +4,7 @@
       v-for="item in tabs"
       :key="item.path"
       :class="['tab-item', { active: current === item.path, primary: item.primary }]"
-      @click="switchTab(item)"
+      @tap="switchTab(item)"
     >
       <view v-if="item.primary" class="tab-primary">
         <view class="tab-fab">
@@ -38,15 +38,18 @@ export default {
     this.updateCurrent()
   },
   mounted() {
+    uni.hideTabBar()
     this.updateCurrent()
   },
   methods: {
     updateCurrent() {
-      const pages = getCurrentPages()
-      if (pages.length) {
-        const page = pages[pages.length - 1]
-        if (page) this.current = '/' + page.route
-      }
+      try {
+        const pages = getCurrentPages()
+        if (pages && pages.length) {
+          const page = pages[pages.length - 1]
+          if (page) this.current = '/' + page.route
+        }
+      } catch (_) {}
     },
     switchTab(item) {
       if (item.primary) {
@@ -72,10 +75,9 @@ export default {
   padding-bottom: env(safe-area-inset-bottom);
   display: flex;
   align-items: stretch;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--app-tabbar-bg, #ffffff);
   border-top: 1px solid rgba(15, 23, 42, 0.06);
   box-shadow: 0 -8rpx 28rpx rgba(15, 23, 42, 0.04);
-  backdrop-filter: blur(18px);
   z-index: 999;
   box-sizing: content-box;
 }
@@ -145,7 +147,7 @@ export default {
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 0 0 6px rgba(255, 255, 255, 0.94),
+    0 0 0 3px var(--app-tabbar-bg, #ffffff),
     var(--app-tabbar-selected-shadow, 0 10rpx 28rpx rgba(15, 23, 42, 0.14));
 }
 
@@ -177,7 +179,7 @@ export default {
 }
 
 .tab-primary .tab-text {
-  margin-top: 2px;
+  margin-top: 6px;
   font-size: 11px;
   line-height: 15px;
   font-weight: 650;

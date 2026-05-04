@@ -391,7 +391,7 @@ export default {
 .container {
   padding: 28rpx 24rpx calc(144rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
-tbackground: var(--app-page-bg, #f8f9fb);
+	background: var(--app-page-bg, #f8f9fb);
   box-sizing: border-box;
 }
 

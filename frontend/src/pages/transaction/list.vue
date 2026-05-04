@@ -955,18 +955,17 @@ export default {
   border: 1rpx solid var(--app-border, #edf1f4);
 }
 
-.record-icon.income {
-  color: var(--app-positive-color, #1f8f72);
-  background: var(--app-status-good-bg, #ecfdf5);
-  border-color: rgba(31, 143, 114, 0.16);
-}
+  .record-icon.income {
+    color: var(--app-positive-color, #1f8f72);
+    background: color-mix(in srgb, var(--app-positive-color, #1f8f72) 15%, var(--app-card-bg, #ffffff));
+    border-color: color-mix(in srgb, var(--app-positive-color, #1f8f72) 30%, transparent);
+  }
 
-.record-icon.expense {
-  color: var(--app-liability-color, #d94a62);
-  background: var(--app-status-risk-bg, #fff1f2);
-  border-color: rgba(217, 74, 98, 0.16);
-}
-
+  .record-icon.expense {
+    color: var(--app-liability-color, #d94a62);
+    background: color-mix(in srgb, var(--app-liability-color, #d94a62) 15%, var(--app-card-bg, #ffffff));
+    border-color: color-mix(in srgb, var(--app-liability-color, #d94a62) 30%, transparent);
+  }
 .record-icon.transfer {
   color: var(--app-muted, #64748b);
   background: var(--app-soft-bg, #f3f6f8);
