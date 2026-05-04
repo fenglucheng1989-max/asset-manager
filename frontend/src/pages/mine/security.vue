@@ -140,12 +140,14 @@ export default {
   line-height: 80rpx;
   border-radius: 999rpx;
   font-size: 30rpx;
-  color: #ffffff;
-  background: var(--app-primary, #d3a414);
+  color: var(--app-primary, #d3a414);
+  background: var(--app-card-bg, #ffffff);
+  border: 2rpx solid var(--app-primary, #d3a414);
 }
 
 .primary-btn[disabled] {
   background: var(--app-soft-bg, #e5e7eb);
   color: var(--app-faint, #9ca3af);
+  border-color: var(--app-border, #e5e7eb);
 }
 </style>

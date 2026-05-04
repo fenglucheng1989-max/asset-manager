@@ -138,8 +138,9 @@ export default {
   height: 64rpx;
   line-height: 64rpx;
   flex-shrink: 0;
-  background: var(--app-primary, #d3a414);
-  color: #ffffff;
+  background: var(--app-card-bg, #ffffff);
+  color: var(--app-primary, #d3a414);
+  border: 2rpx solid var(--app-primary, #d3a414);
 }
 
 .list-card {

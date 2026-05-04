@@ -374,14 +374,16 @@ export default {
   height: 80rpx;
   line-height: 80rpx;
   border-radius: 999rpx;
-  background: var(--app-primary, #d3a414);
-  color: #ffffff;
+  background: var(--app-card-bg, #ffffff);
+  color: var(--app-primary, #d3a414);
   font-size: 30rpx;
+  border: 2rpx solid var(--app-primary, #d3a414);
 }
 
 .submit-btn[disabled] {
   background: var(--app-soft-bg, #e5e7eb);
   color: var(--app-faint, #9ca3af);
+  border-color: var(--app-border, #e5e7eb);
 }
 
 .donate-row {

@@ -177,17 +177,19 @@ export default {
 }
 
 .btn-save {
-  background: var(--app-primary, #d3a414);
-  color: #ffffff;
+  background: var(--app-card-bg, #ffffff);
+  color: var(--app-primary, #d3a414);
   border-radius: 999rpx;
   height: 80rpx;
   line-height: 80rpx;
   font-size: 30rpx;
   font-weight: 700;
+  border: 2rpx solid var(--app-primary, #d3a414);
 }
 
 .btn-save[disabled] {
   background: var(--app-soft-bg, #e5e7eb);
   color: var(--app-faint, #9ca3af);
+  border-color: var(--app-border, #e5e7eb);
 }
 </style>
