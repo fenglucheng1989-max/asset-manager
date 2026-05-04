@@ -423,9 +423,9 @@ export default {
 }
 
 .hero-tab.active {
-  background: var(--app-primary, #d3a414);
-  color: #ffffff;
-  font-weight: 800;
+  background: var(--app-card-bg, #ffffff);
+  color: var(--app-primary, #d3a414);
+  font-weight: 700;
 }
 
 /* Summary section */
@@ -636,13 +636,13 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 8rpx;
-  height: 88rpx;
+  height: 80rpx;
   border-radius: 999rpx;
-  background: var(--app-primary, #d3a414);
-  color: #ffffff;
+  background: var(--app-card-bg, #ffffff);
+  color: var(--app-primary, #d3a414);
   font-size: 30rpx;
-  font-weight: 800;
-  box-shadow: var(--app-shadow-lg, 0 8rpx 24rpx rgba(211, 164, 20, 0.28));
+  font-weight: 700;
+  border: 2rpx solid var(--app-primary, #d3a414);
 }
 
 .create-btn-icon {

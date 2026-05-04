@@ -180,9 +180,9 @@ export default {
   background: var(--app-primary, #d3a414);
   color: #ffffff;
   border-radius: 999rpx;
-  height: 88rpx;
-  line-height: 88rpx;
-  font-size: 32rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  font-size: 30rpx;
   font-weight: 700;
 }
 

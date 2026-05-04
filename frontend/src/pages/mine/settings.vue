@@ -224,13 +224,13 @@ export default {
 
 .logout-btn {
   margin-top: 36rpx;
-  height: 86rpx;
-  line-height: 86rpx;
+  height: 80rpx;
+  line-height: 80rpx;
   text-align: center;
-  border-radius: 18rpx;
+  border-radius: 999rpx;
   background: var(--app-card-bg, #ffffff);
   font-size: 30rpx;
   color: var(--app-danger, #d94a62);
-  border: 1rpx solid var(--app-border, #edf1f4);
+  border: 2rpx solid var(--app-danger, #d94a62);
 }
 </style>
