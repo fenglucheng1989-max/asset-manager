@@ -16,6 +16,9 @@
         <input class="input" v-model="passwordForm.confirmPassword" type="password" placeholder="再次输入新密码" />
       </view>
       <text class="form-hint">建议使用 6-50 位且不与当前密码相同的新密码</text>
+    </view>
+
+    <view class="btn-group">
       <button class="primary-btn" @click="changePassword">保存新密码</button>
     </view>
   </view>
@@ -128,8 +131,11 @@ export default {
   font-size: 28rpx;
 }
 
+.btn-group {
+  padding: 6rpx 4rpx 0;
+}
+
 .primary-btn {
-  margin: 8rpx 0 0;
   height: 80rpx;
   line-height: 80rpx;
   border-radius: 999rpx;
