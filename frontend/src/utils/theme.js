@@ -315,9 +315,19 @@ export function getThemeVars(mode = getThemeMode()) {
   }
 }
 
+function isDarkColor(hex) {
+  if (!hex || hex.length < 7) return false
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance < 0.5
+}
+
 export function applyTheme(mode = getThemeMode()) {
   const t = getResolvedTheme(mode)
-  try { uni.setNavigationBarColor({ frontColor: '#000000', backgroundColor: t.navBg }) } catch (_) {}
+  const frontColor = isDarkColor(t.navBg) ? '#ffffff' : '#000000'
+  try { uni.setNavigationBarColor({ frontColor, backgroundColor: t.navBg }) } catch (_) {}
   try { uni.setTabBarStyle({ color: t.tabText, selectedColor: t.tabSelected, backgroundColor: t.tabBg, borderStyle: 'white' }) } catch (_) {}
   // #ifdef H5
   if (typeof document !== 'undefined') {

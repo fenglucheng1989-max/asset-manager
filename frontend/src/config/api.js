@@ -1,5 +1,5 @@
 const DEFAULT_H5_API_BASE_URL = ''
-const DEFAULT_APP_API_BASE_URL = 'http://192.168.101.12:8080'
+const DEFAULT_APP_API_BASE_URL = 'http://192.168.1.20:8080'
 
 function trimTrailingSlash(value) {
   return value ? value.replace(/\/+$/, '') : ''
