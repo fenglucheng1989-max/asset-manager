@@ -566,13 +566,13 @@ export default {
 .login-btn {
   background: var(--app-primary, #d3a414);
   color: #ffffff;
-  border-radius: 16rpx;
-  height: 88rpx;
-  line-height: 88rpx;
+  border-radius: 999rpx;
+  height: 80rpx;
+  line-height: 80rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
+  font-size: 30rpx;
   margin-bottom: 30rpx;
 }
 

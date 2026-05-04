@@ -170,16 +170,18 @@ export default {
 }
 
 .delete-btn {
-  height: 88rpx;
-  line-height: 88rpx;
-  border-radius: 16rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  border-radius: 999rpx;
   font-size: 30rpx;
-  color: #ffffff;
-  background: var(--app-danger, #d94a62);
+  color: var(--app-danger, #d94a62);
+  background: var(--app-card-bg, #ffffff);
+  border: 2rpx solid var(--app-danger, #d94a62);
 }
 
 .delete-btn[disabled] {
   background: var(--app-soft-bg, #e5e7eb);
   color: var(--app-faint, #9ca3af);
+  border-color: var(--app-border, #e5e7eb);
 }
 </style>

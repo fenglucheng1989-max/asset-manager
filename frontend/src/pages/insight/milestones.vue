@@ -139,13 +139,13 @@ export default {
 .add-btn {
   width: 140rpx;
   margin: 0;
-  height: 76rpx;
-  line-height: 76rpx;
-  border-radius: 14rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+  border-radius: 999rpx;
   background: var(--app-primary, #d3a414);
   color: #ffffff;
-  font-size: 27rpx;
-  font-weight: 800;
+  font-size: 26rpx;
+  font-weight: 600;
 }
 
 .timeline-card {

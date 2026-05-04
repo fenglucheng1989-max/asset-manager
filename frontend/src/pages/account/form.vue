@@ -531,22 +531,36 @@ export default {
 }
 
 .btn-save {
-  background: var(--app-primary, #d3a414);
-  color: #ffffff;
+  background: var(--app-card-bg, #ffffff);
+  color: var(--app-primary, #d3a414);
   border-radius: 999rpx;
-  height: 88rpx;
-  line-height: 88rpx;
-  font-size: 32rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  border: 2rpx solid var(--app-primary, #d3a414);
   margin-bottom: 20rpx;
+}
+
+.btn-save[disabled] {
+  background: var(--app-soft-bg, #e5e7eb);
+  color: var(--app-faint, #9ca3af);
+  border-color: var(--app-border, #e5e7eb);
 }
 
 .btn-delete {
   background: var(--app-card-bg, #ffffff);
   color: var(--app-danger, #d94a62);
-  border: 1rpx solid var(--app-border, #edf1f4);
+  border: 2rpx solid var(--app-danger, #d94a62);
   border-radius: 999rpx;
-  height: 88rpx;
-  line-height: 88rpx;
-  font-size: 32rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  font-size: 30rpx;
+}
+
+.btn-delete[disabled] {
+  background: var(--app-soft-bg, #e5e7eb);
+  color: var(--app-faint, #9ca3af);
+  border-color: var(--app-border, #e5e7eb);
 }
 </style>

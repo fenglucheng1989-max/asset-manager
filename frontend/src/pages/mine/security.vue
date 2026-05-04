@@ -130,11 +130,16 @@ export default {
 
 .primary-btn {
   margin: 8rpx 0 0;
-  height: 84rpx;
-  line-height: 84rpx;
-  border-radius: 16rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  border-radius: 999rpx;
   font-size: 30rpx;
   color: #ffffff;
   background: var(--app-primary, #d3a414);
+}
+
+.primary-btn[disabled] {
+  background: var(--app-soft-bg, #e5e7eb);
+  color: var(--app-faint, #9ca3af);
 }
 </style>

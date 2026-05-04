@@ -129,17 +129,17 @@ export default {
 .primary-btn,
 .load-btn {
   margin: 0;
-  border-radius: 16rpx;
-  background: var(--app-primary, #d3a414);
-  color: #ffffff;
+  border-radius: 999rpx;
   font-size: 26rpx;
 }
 
 .primary-btn {
   width: 168rpx;
-  height: 72rpx;
-  line-height: 72rpx;
+  height: 64rpx;
+  line-height: 64rpx;
   flex-shrink: 0;
+  background: var(--app-primary, #d3a414);
+  color: #ffffff;
 }
 
 .list-card {

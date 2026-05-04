@@ -399,12 +399,11 @@ export default {
   font-size: 30rpx;
   font-weight: 700;
   border: 2rpx solid var(--app-primary, #d3a414);
-  width: auto;
-  margin-left: 80rpx;
-  margin-right: 80rpx;
 }
 
 .save-btn[disabled] {
-  opacity: 0.4;
+  background: var(--app-soft-bg, #e5e7eb);
+  color: var(--app-faint, #9ca3af);
+  border-color: var(--app-border, #e5e7eb);
 }
 </style>
