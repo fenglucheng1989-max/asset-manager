@@ -397,11 +397,12 @@ tbackground: var(--app-page-bg, #f8f9fb);
 
 .net-worth-card {
   position: relative;
-  background: var(--app-card-bg, #ffffff);
+  background: linear-gradient(180deg, var(--app-card-bg, #ffffff) 0%, var(--app-card-bg-alt, #fcfdfe) 100%);
   border-radius: 18rpx;
   padding: 32rpx 30rpx 28rpx;
   margin-bottom: 20rpx;
   border: 1rpx solid var(--app-border, #edf1f4);
+  border-top: 4rpx solid var(--app-primary, #d3a414);
   box-shadow: var(--app-shadow, 0 8rpx 22rpx rgba(26, 42, 58, 0.045));
 }
 
