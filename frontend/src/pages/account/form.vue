@@ -398,20 +398,20 @@ export default {
 }
 
 .kind-tab {
-  height: 68rpx;
+  height: 64rpx;
   border-radius: 14rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--app-muted, #64748b);
-  font-size: 29rpx;
-  font-weight: 800;
+  color: var(--app-faint, #94a3b8);
+  font-size: 28rpx;
+  font-weight: 600;
 }
 
 .kind-tab.active {
-  background: var(--app-primary, #d3a414);
-  color: #ffffff;
-  box-shadow: var(--app-shadow-lg, 0 8rpx 22rpx rgba(15, 23, 42, 0.08));
+  background: var(--app-card-bg, #ffffff);
+  color: var(--app-primary, #d3a414);
+  font-weight: 700;
 }
 
 .form-card {
@@ -512,17 +512,17 @@ export default {
 }
 
 .picker-arrow {
-  width: auto;
-  height: auto;
-  border-radius: 0;
-  background: transparent;
-  color: var(--app-primary, #d3a414);
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: var(--app-soft-bg, #f2f6f4);
+  color: var(--app-faint, #94a3b8);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 34rpx;
-  line-height: 34rpx;
-  font-weight: 300;
+  font-size: 32rpx;
+  line-height: 32rpx;
+  font-weight: 400;
   flex-shrink: 0;
 }
 
