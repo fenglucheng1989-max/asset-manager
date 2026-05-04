@@ -73,6 +73,14 @@
 - JWT subject 统一为 email
 - 用户名改为自动从邮箱前缀生成
 
+### 2026-05 H5/App 多端统一
+
+- **自定义 Tab Bar H5 统一**：移除 `#ifndef H5` 条件，H5 也使用自定义导航（带图标+FAB），两端风格一致
+- **原生 Tab Bar 禁用**：`uni.hideTabBar()` 去掉平台条件，同时在 App.vue onLaunch/onShow 调用
+- **FAB 光环适配暗色主题**：光环 spread 6px→3px，颜色改为 `var(--app-tabbar-bg)` 跟随主题
+- **记账文字间距**：FAB 与标签间距加大，避免光环遮挡文字
+- **暗色主题收支图标修复**：记录图标背景从硬编码亮色改为 `color-mix()` 混合主题色与卡片背景色，暗色主题不再刺眼
+
 ## 认证体系扩展（后续迭代，架构预留）
 
 当前认证链路为单一路径：`DTO → AuthServiceImpl.login() → 查 DB → passwordEncoder.matches() → JWT`。扩展点如下：
