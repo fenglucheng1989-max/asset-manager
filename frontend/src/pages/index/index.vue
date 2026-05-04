@@ -156,7 +156,7 @@ export default {
     getAccountTypeName,
     toBaseAmount,
     async handleManualRefresh() {
-      await this.refreshData({ showToast: true })
+      await this.refreshData({ showToast: true, force: true })
     },
     async refreshData(options = {}) {
       if (this.isLoading) return
@@ -169,13 +169,21 @@ export default {
         return
       }
 
+      const now = Date.now()
+      if (!options.force && this._lastFetchTime && now - this._lastFetchTime < 5000) {
+        return
+      }
+
       this.isLoading = true
       try {
         const assetStore = useAssetStore()
-        await assetStore.fetchOverview()
-        await assetStore.fetchAccounts()
+        await Promise.all([
+          assetStore.fetchOverview(),
+          assetStore.fetchAccounts()
+        ])
         this.overview = { ...DEFAULT_OVERVIEW, ...(assetStore.overview || {}) }
         this.accounts = Array.isArray(assetStore.accounts) ? [...assetStore.accounts] : []
+        this._lastFetchTime = Date.now()
         this.pageError = ''
         uni.removeStorageSync('__last_app_error__')
         if (options.showToast) {

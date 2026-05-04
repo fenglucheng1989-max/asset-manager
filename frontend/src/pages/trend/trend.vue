@@ -384,9 +384,11 @@ export default {
       this.isLoading = true
       try {
         const assetStore = useAssetStore()
-        await assetStore.fetchOverview()
-        await assetStore.fetchAccounts()
-        const snapshotRes = await assetStore.fetchSnapshots({ limit: this.snapshotPageSize, offset: 0 })
+        const snapshotRes = await Promise.all([
+          assetStore.fetchOverview(),
+          assetStore.fetchAccounts(),
+          assetStore.fetchSnapshots({ limit: this.snapshotPageSize, offset: 0 })
+        ]).then(results => results[2])
         this.overview = { ...DEFAULT_OVERVIEW, ...(assetStore.overview || {}) }
         this.accounts = Array.isArray(assetStore.accounts) ? [...assetStore.accounts] : []
         this.snapshots = Array.isArray(assetStore.snapshots) ? [...assetStore.snapshots] : []
@@ -423,10 +425,9 @@ export default {
         const res = await assetStore.createSnapshot()
         if (res && res.code === 200) {
           await assetStore.fetchOverview()
-          const snapshotRes = await assetStore.fetchSnapshots({ limit: this.snapshotPageSize, offset: 0 })
           this.overview = { ...DEFAULT_OVERVIEW, ...(assetStore.overview || {}) }
           this.snapshots = Array.isArray(assetStore.snapshots) ? [...assetStore.snapshots] : []
-          this.hasMoreSnapshots = Array.isArray(snapshotRes.data) && snapshotRes.data.length === this.snapshotPageSize
+          this.hasMoreSnapshots = this.snapshots.length >= this.snapshotPageSize
           uni.showToast({ title: '快照已记录', icon: 'success' })
         }
       } finally {
