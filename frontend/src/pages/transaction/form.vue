@@ -314,20 +314,20 @@ export default {
 }
 
 .type-tab {
-  height: 68rpx;
+  height: 64rpx;
   border-radius: 12rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--app-muted, #64748b);
+  color: var(--app-faint, #94a3b8);
   font-size: 28rpx;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .type-tab.active {
-  background: var(--app-primary, #d3a414);
-  color: #ffffff;
-  box-shadow: 0 8rpx 18rpx rgba(0, 0, 0, 0.16);
+  background: var(--app-card-bg, #ffffff);
+  color: var(--app-primary, #d3a414);
+  font-weight: 700;
 }
 
 .form-card {
@@ -377,26 +377,34 @@ export default {
 }
 
 .picker-arrow {
-  width: 44rpx;
-  height: 44rpx;
+  width: 36rpx;
+  height: 36rpx;
   border-radius: 50%;
   background: var(--app-soft-bg, #f2f6f4);
-  color: var(--app-primary, #d3a414);
+  color: var(--app-faint, #94a3b8);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
-  line-height: 40rpx;
-  font-weight: 300;
+  font-size: 32rpx;
+  line-height: 32rpx;
+  font-weight: 400;
 }
 
 .save-btn {
-  height: 88rpx;
-  line-height: 88rpx;
+  height: 80rpx;
+  line-height: 80rpx;
   border-radius: 999rpx;
-  background: var(--app-primary, #d3a414);
-  color: #ffffff;
-  font-size: 32rpx;
-  font-weight: 750;
+  background: var(--app-card-bg, #ffffff);
+  color: var(--app-primary, #d3a414);
+  font-size: 30rpx;
+  font-weight: 700;
+  border: 2rpx solid var(--app-primary, #d3a414);
+  width: auto;
+  margin-left: 80rpx;
+  margin-right: 80rpx;
+}
+
+.save-btn[disabled] {
+  opacity: 0.4;
 }
 </style>
